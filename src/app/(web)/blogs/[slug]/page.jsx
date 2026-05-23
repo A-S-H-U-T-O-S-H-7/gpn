@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark, User, Tag } from "lucide-react";
@@ -45,6 +45,7 @@ const mockBlogs = {
 
 export default function BlogDetailsPage() {
   const { slug } = useParams();
+  const router = useRouter();
   const [blog, setBlog] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -110,9 +111,19 @@ export default function BlogDetailsPage() {
               {blog.readTime} min read
             </span>
           </div>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            {blog.title}
-          </h1>
+          <div className="mb-4 flex items-start gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="mt-1 rounded-full border border-white/40 bg-white/15 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
+              {blog.title}
+            </h1>
+          </div>
           <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
