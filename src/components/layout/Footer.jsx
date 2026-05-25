@@ -79,7 +79,7 @@ export default function Footer() {
           <div>
             <h3 className="text-white dark:text-gray-200 font-semibold text-lg mb-4">Support</h3>
             <ul className="space-y-3">
-              <li><a href="/contact" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Contact Us</a></li>
+              <li><a href="/contact-us" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Contact Us</a></li>
               <li><a href="/privacy-policy" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Privacy Policy</a></li>
               <li><a href="/terms" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Terms of Use</a></li>
               <li><a href="/cookie-policy" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Cookie Policy</a></li>

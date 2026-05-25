@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import ThemeProvider from "@/components/providers/ThemeProvider";
 import "./globals.css";
+import ClientLayout from "./ClientLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,18 +15,29 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "GPN - Great Post News",
   description: "Video-first digital news platform",
+  keywords: "news, live tv, breaking news, global news, world news, politics, technology, sports, entertainment",
+  authors: [{ name: "GPN" }],
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+  openGraph: {
+    title: "GPN - Great Post News",
+    description: "Your video-first news platform for breaking news and live updates",
+    type: "website",
+    locale: "en_US",
+    siteName: "Great Post News",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GPN - Great Post News",
+    description: "Your video-first news platform for breaking news and live updates",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body
-        className="bg-yellow-50/50 dark:bg-slate-900/50 text-gray-900 dark:text-gray-100 transition-colors duration-300"
-        suppressHydrationWarning
-      >
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+      <body>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

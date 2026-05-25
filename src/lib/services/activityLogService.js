@@ -32,6 +32,8 @@ export const ActivityEntityTypes = {
   SUBSCRIBER: 'subscriber',
   SETTINGS: 'settings',
   ADMIN: 'admin',
+  LIVE_TV: 'live_tv',
+  HOROSCOPE: 'horoscope',
 };
 
 // Log an activity

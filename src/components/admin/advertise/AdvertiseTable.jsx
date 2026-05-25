@@ -1,0 +1,71 @@
+"use client";
+
+import Pagination from "../Pagination";
+import AdvertiseTableRow from "./AdvertiseTableRow";
+import { FileText } from "lucide-react";
+
+export default function AdvertiseTable({ 
+  inquiries, 
+  currentPage, 
+  totalPages, 
+  isDark, 
+  onView, 
+  onUpdateStatus, 
+  onDelete,
+  onPageChange 
+}) {
+  if (inquiries.length === 0) {
+    return (
+      <div className={`rounded-xl border-2 p-12 text-center ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
+        <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+        <p className={`text-lg ${isDark ? "text-gray-400" : "text-gray-500"}`}>No inquiries found</p>
+        <p className={`text-sm mt-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
+          Advertising inquiries will appear here
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-xl border-2 overflow-hidden ${
+      isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"
+    }`}>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className={`${isDark ? "bg-linear-to-r from-red-600 via-red-400 to-rose-400 text-gray-100" : "bg-linear-to-r from-red-100 to-rose-100 text-gray-800"} border-b-2 ${isDark ? "border-red-500/40" : "border-red-300"}`}>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">#</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Company / Contact</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Contact Info</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Ad Type / Budget</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y ${isDark ? "divide-red-500/25" : "divide-red-200"}`}>
+            {inquiries.map((inquiry, index) => (
+              <AdvertiseTableRow
+                key={inquiry.id}
+                inquiry={inquiry}
+                index={index}
+                isDark={isDark}
+                onView={onView}
+                onUpdateStatus={onUpdateStatus}
+                onDelete={onDelete}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        isDark={isDark}
+      />
+    </div>
+  );
+}
+
