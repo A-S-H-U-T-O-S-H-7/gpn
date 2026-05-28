@@ -25,6 +25,8 @@ let blogsCache = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 30000; // 30 seconds
 
+// ==================== HELPER FUNCTIONS ====================
+
 // Generate slug from title
 export const generateSlug = (title) => {
   return title
@@ -35,7 +37,23 @@ export const generateSlug = (title) => {
     .replace(/^-+|-+$/g, '');
 };
 
-// Upload image to Firebase Storage (optimized)
+// Calculate read time from content
+const calculateReadTime = (content) => {
+  if (!content) return 5;
+  const text = content.replace(/<[^>]*>/g, '');
+  const words = text.split(/\s+/).length;
+  return Math.max(3, Math.ceil(words / 200));
+};
+
+// Format views for display
+const formatViews = (views) => {
+  if (!views) return '0';
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+  if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+  return views.toString();
+};
+
+// Upload image to Firebase Storage
 const uploadImage = async (file, fileName) => {
   if (!file) return null;
   
@@ -54,15 +72,13 @@ const uploadImage = async (file, fileName) => {
     const extension = (file.name || 'jpg').split('.').pop().toLowerCase();
     const safeFileName = `${fileName}_${timestamp}.${extension}`;
     const storageRef = ref(storage, `blogs/images/${safeFileName}`);
-
-    
     
     const uploadResult = await uploadBytes(storageRef, file);
     const imageUrl = await getDownloadURL(uploadResult.ref);
     
     return imageUrl;
   } catch (error) {
-    console.error('❌ Error uploading image:', error);
+    console.error('Error uploading image:', error);
     throw error;
   }
 };
@@ -79,12 +95,13 @@ const deleteImage = async (imageUrl) => {
   }
 };
 
-// Create a new blog post (optimized)
+// ==================== ADMIN FUNCTIONS ====================
+
+// Create a new blog post
 export const createBlog = async (blogData, imageFile) => {
   try {
     let imageUrl = null;
     
-    // Upload image if provided
     if (imageFile) {
       const fileName = generateSlug(blogData.title);
       imageUrl = await uploadImage(imageFile, fileName);
@@ -99,6 +116,10 @@ export const createBlog = async (blogData, imageFile) => {
       metadesc: blogData.metadesc,
       metakeywords: blogData.metakeywords || '',
       status: blogData.status,
+      category: blogData.category || 'General',
+      author: blogData.author || 'GPN Editor',
+      authorBio: blogData.authorBio || '',
+      tags: blogData.tags || [],
       image: imageUrl,
       views: 0,
       createdAt: serverTimestamp(),
@@ -106,7 +127,6 @@ export const createBlog = async (blogData, imageFile) => {
       publishedAt: blogData.status === 'published' ? serverTimestamp() : null,
     });
     
-    // Clear cache after creating new blog
     blogsCache = null;
     
     return { success: true, id: blogRef.id };
@@ -116,7 +136,7 @@ export const createBlog = async (blogData, imageFile) => {
   }
 };
 
-// Update an existing blog post (optimized)
+// Update an existing blog post
 export const updateBlog = async (blogId, blogData, imageFile, existingImageUrl) => {
   try {
     let imageUrl = existingImageUrl;
@@ -139,6 +159,10 @@ export const updateBlog = async (blogId, blogData, imageFile, existingImageUrl) 
       metadesc: blogData.metadesc,
       metakeywords: blogData.metakeywords || '',
       status: blogData.status,
+      category: blogData.category || 'General',
+      author: blogData.author || 'GPN Editor',
+      authorBio: blogData.authorBio || '',
+      tags: blogData.tags || [],
       updatedAt: serverTimestamp(),
     };
     
@@ -152,7 +176,6 @@ export const updateBlog = async (blogId, blogData, imageFile, existingImageUrl) 
     
     await updateDoc(blogRef, updateData);
     
-    // Clear cache after update
     blogsCache = null;
     
     return { success: true };
@@ -171,7 +194,6 @@ export const deleteBlog = async (blogId, imageUrl) => {
     
     await deleteDoc(doc(db, BLOGS_COLLECTION, blogId));
     
-    // Clear cache after delete
     blogsCache = null;
     
     return { success: true };
@@ -181,7 +203,7 @@ export const deleteBlog = async (blogId, imageUrl) => {
   }
 };
 
-// Get a single blog post by ID (optimized with caching)
+// Get a single blog post by ID (for admin)
 export const getBlogById = async (blogId) => {
   try {
     const blogRef = doc(db, BLOGS_COLLECTION, blogId);
@@ -204,6 +226,10 @@ export const getBlogById = async (blogId) => {
         metadesc: data.metadesc || '',
         metakeywords: data.metakeywords || '',
         status: data.status || 'draft',
+        category: data.category || 'General',
+        author: data.author || 'GPN Editor',
+        authorBio: data.authorBio || '',
+        tags: data.tags || [],
         image: data.image || null,
         excerpt: data.excerpt || '',
         views: data.views || 0,
@@ -218,69 +244,9 @@ export const getBlogById = async (blogId) => {
   }
 };
 
-// OPTIMIZED: Get blogs with server-side pagination (NO client-side filtering)
-export const getBlogsOptimized = async (page = 1, searchTerm = '', statusFilter = 'all', lastDoc = null) => {
-  try {
-    const blogsRef = collection(db, BLOGS_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc')];
-    
-    // Apply status filter at query level
-    if (statusFilter !== 'all') {
-      constraints.push(where('status', '==', statusFilter));
-    }
-    
-    // Apply pagination
-    if (page > 1 && lastDoc) {
-      constraints.push(startAfter(lastDoc));
-    }
-    
-    constraints.push(limit(ITEMS_PER_PAGE));
-    
-    const q = query(blogsRef, ...constraints);
-    const snapshot = await getDocs(q);
-    
-    const blogs = [];
-    let lastVisible = null;
-    
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      blogs.push({
-        id: doc.id,
-        title: data.title || '',
-        excerpt: data.excerpt || '',
-        status: data.status || 'draft',
-        image: data.image || null,
-        views: data.views || 0,
-        createdAt: data.createdAt?.toDate?.() || null,
-        publishedAt: data.publishedAt?.toDate?.() || null,
-      });
-      lastVisible = doc;
-    });
-    
-    // Apply search filter client-side (Firestore doesn't support text search well)
-    let filteredBlogs = blogs;
-    if (searchTerm) {
-      filteredBlogs = blogs.filter(blog => 
-        blog.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    return {
-      success: true,
-      blogs: filteredBlogs,
-      lastDoc: lastVisible,
-      hasMore: snapshot.docs.length === ITEMS_PER_PAGE,
-    };
-  } catch (error) {
-    console.error('Error getting blogs:', error);
-    return { success: false, error: error.message, blogs: [], hasMore: false };
-  }
-};
-
-// Simple get blogs (for backward compatibility, optimized with caching)
+// Get all blogs for admin panel (with pagination, search, filter)
 export const getBlogs = async (page = 1, searchTerm = '', statusFilter = 'all') => {
   try {
-    // Check cache first (only for first page without filters)
     const now = Date.now();
     if (page === 1 && !searchTerm && statusFilter === 'all' && blogsCache && (now - lastFetchTime) < CACHE_DURATION) {
       return blogsCache;
@@ -289,12 +255,10 @@ export const getBlogs = async (page = 1, searchTerm = '', statusFilter = 'all') 
     const blogsRef = collection(db, BLOGS_COLLECTION);
     let constraints = [orderBy('createdAt', 'desc')];
     
-    // Apply status filter at query level
     if (statusFilter !== 'all') {
       constraints.push(where('status', '==', statusFilter));
     }
     
-    // Fetch more than needed for client-side search
     const fetchLimit = searchTerm ? 50 : ITEMS_PER_PAGE;
     constraints.push(limit(fetchLimit));
     
@@ -316,14 +280,12 @@ export const getBlogs = async (page = 1, searchTerm = '', statusFilter = 'all') 
       });
     });
     
-    // Apply search filter client-side
     if (searchTerm) {
       blogs = blogs.filter(blog => 
         blog.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
-    // Pagination
     const totalItems = blogs.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -336,7 +298,6 @@ export const getBlogs = async (page = 1, searchTerm = '', statusFilter = 'all') 
       totalItems,
     };
     
-    // Cache the result
     if (page === 1 && !searchTerm && statusFilter === 'all') {
       blogsCache = result;
       lastFetchTime = now;
@@ -346,6 +307,223 @@ export const getBlogs = async (page = 1, searchTerm = '', statusFilter = 'all') 
   } catch (error) {
     console.error('Error getting blogs:', error);
     return { success: false, error: error.message, blogs: [], totalPages: 1, totalItems: 0 };
+  }
+};
+
+// ==================== FRONTEND FUNCTIONS ====================
+
+// Get all published blogs for frontend (latest first)
+export const getPublishedBlogs = async (page = 1, itemsPerPage = 8) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const constraints = [
+      where('status', '==', 'published'),
+      orderBy('publishedAt', 'desc'),
+      limit(itemsPerPage)
+    ];
+    
+    const q = query(blogsRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const blogs = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+      
+      blogs.push({
+        id: doc.id,
+        slug: data.slug || '',
+        title: data.title || '',
+        description: data.excerpt || data.content?.substring(0, 150)?.replace(/<[^>]*>/g, '') || '',
+        date: publishedDate,
+        formattedDate: publishedDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        readTime: calculateReadTime(data.content || ''),
+        author: data.author || 'GPN Editor',
+        category: data.category || 'General',
+        image: data.image || null,
+        views: data.views || 0,
+        formattedViews: formatViews(data.views),
+        content: data.content || '',
+        tags: data.tags || [],
+      });
+    });
+    
+    return { success: true, blogs };
+  } catch (error) {
+    console.error('Error getting published blogs:', error);
+    return { success: false, error: error.message, blogs: [] };
+  }
+};
+
+// Get single blog by slug for frontend
+export const getPublishedBlogBySlug = async (slug) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const q = query(
+      blogsRef, 
+      where('slug', '==', slug), 
+      where('status', '==', 'published')
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return { success: false, error: 'Blog not found' };
+    }
+    
+    const docSnap = snapshot.docs[0];
+    const data = docSnap.data();
+    const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+    
+    return {
+      success: true,
+      blog: {
+        id: docSnap.id,
+        slug: data.slug || '',
+        title: data.title || '',
+        description: data.excerpt || data.content?.substring(0, 150)?.replace(/<[^>]*>/g, '') || '',
+        content: data.content || '',
+        category: data.category || 'General',
+        date: publishedDate,
+        formattedDate: publishedDate.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        readTime: calculateReadTime(data.content || ''),
+        views: data.views || 0,
+        formattedViews: formatViews(data.views),
+        author: data.author || 'GPN Editor',
+        authorBio: data.authorBio || "Expert journalist bringing you the latest insights from around the world.",
+        tags: data.tags || [],
+        image: data.image || null,
+      }
+    };
+  } catch (error) {
+    console.error('Error getting blog by slug:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get featured blogs for sidebar (most viewed)
+export const getFeaturedBlogs = async (maxItems = 4) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const q = query(
+      blogsRef,
+      where('status', '==', 'published'),
+      orderBy('views', 'desc'),
+      limit(maxItems)
+    );
+    const snapshot = await getDocs(q);
+    
+    const blogs = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+      
+      blogs.push({
+        id: doc.id,
+        slug: data.slug || '',
+        title: data.title || '',
+        image: data.image || null,
+        views: data.views || 0,
+        formattedViews: formatViews(data.views),
+        date: publishedDate,
+        formattedDate: publishedDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        readTime: calculateReadTime(data.content || ''),
+      });
+    });
+    
+    return { success: true, blogs };
+  } catch (error) {
+    console.error('Error getting featured blogs:', error);
+    return { success: false, blogs: [] };
+  }
+};
+
+// Get blogs by category
+export const getBlogsByCategory = async (categorySlug, maxItems = 8) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const q = query(
+      blogsRef,
+      where('status', '==', 'published'),
+      where('category', '==', categorySlug),
+      orderBy('publishedAt', 'desc'),
+      limit(maxItems)
+    );
+    const snapshot = await getDocs(q);
+    
+    const blogs = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+      
+      blogs.push({
+        id: doc.id,
+        slug: data.slug || '',
+        title: data.title || '',
+        description: data.excerpt || data.content?.substring(0, 100)?.replace(/<[^>]*>/g, '') || '',
+        date: publishedDate,
+        formattedDate: publishedDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        readTime: calculateReadTime(data.content || ''),
+        image: data.image || null,
+        views: data.views || 0,
+      });
+    });
+    
+    return { success: true, blogs };
+  } catch (error) {
+    console.error('Error getting blogs by category:', error);
+    return { success: false, blogs: [] };
+  }
+};
+
+// Get latest blogs (for homepage sections)
+export const getLatestBlogs = async (maxItems = 6) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const q = query(
+      blogsRef,
+      where('status', '==', 'published'),
+      orderBy('publishedAt', 'desc'),
+      limit(maxItems)
+    );
+    const snapshot = await getDocs(q);
+    
+    const blogs = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+      
+      blogs.push({
+        id: doc.id,
+        slug: data.slug || '',
+        title: data.title || '',
+        description: data.excerpt || '',
+        date: publishedDate,
+        readTime: calculateReadTime(data.content || ''),
+        image: data.image || null,
+        views: data.views || 0,
+        category: data.category || 'General',
+      });
+    });
+    
+    return { success: true, blogs };
+  } catch (error) {
+    console.error('Error getting latest blogs:', error);
+    return { success: false, blogs: [] };
   }
 };
 
@@ -360,5 +538,41 @@ export const incrementBlogView = async (blogId) => {
   } catch (error) {
     console.error('Error incrementing view:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// Search blogs by title
+export const searchBlogs = async (searchTerm, maxItems = 20) => {
+  try {
+    const blogsRef = collection(db, BLOGS_COLLECTION);
+    const q = query(
+      blogsRef,
+      where('status', '==', 'published'),
+      orderBy('publishedAt', 'desc'),
+      limit(maxItems)
+    );
+    const snapshot = await getDocs(q);
+    
+    const blogs = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.title?.toLowerCase().includes(searchTerm.toLowerCase())) {
+        const publishedDate = data.publishedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date();
+        blogs.push({
+          id: doc.id,
+          slug: data.slug || '',
+          title: data.title || '',
+          description: data.excerpt || '',
+          date: publishedDate,
+          readTime: calculateReadTime(data.content || ''),
+          image: data.image || null,
+        });
+      }
+    });
+    
+    return { success: true, blogs };
+  } catch (error) {
+    console.error('Error searching blogs:', error);
+    return { success: false, blogs: [] };
   }
 };

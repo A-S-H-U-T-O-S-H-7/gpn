@@ -8,6 +8,9 @@ export default function CategorySidebar({ formData, onSubmit, onDelete, isLoadin
     return isEditMode ? "Update Category" : "Create Category";
   };
 
+  // Get the background color from formData
+  const bgColor = formData.backgroundColor || '#ff2b2b';
+
   return (
     <div className="space-y-6">
       {/* Preview Card */}
@@ -23,8 +26,8 @@ export default function CategorySidebar({ formData, onSubmit, onDelete, isLoadin
 
         <div className="text-center">
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white"
-            style={{ backgroundColor: formData.color || '#ff2b2b' }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white shadow-md"
+            style={{ backgroundColor: bgColor }}
           >
             <span className="text-lg">{formData.iconEmoji || '📁'}</span>
             <span className="font-medium">{formData.name || 'Category Name'}</span>
@@ -38,6 +41,10 @@ export default function CategorySidebar({ formData, onSubmit, onDelete, isLoadin
             <span>Slug: {formData.slug || 'category-slug'}</span>
             <span>•</span>
             <span>Order: {formData.order || 0}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-1">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: bgColor }} />
+            <span className="text-xs text-gray-500">{bgColor}</span>
           </div>
         </div>
       </div>

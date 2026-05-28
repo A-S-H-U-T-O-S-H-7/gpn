@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Trash2, Eye, Calendar, Star } from "lucide-react";
+import { Edit, Trash2, Eye, Calendar, Star, TrendingUp, Zap } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
 import Link from "next/link";
 
@@ -54,14 +54,32 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
       
       <td className="px-6 py-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
             <div className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
               {video.title}
             </div>
+            
+            {/* Featured Badge */}
             {video.isFeatured && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded">
                 <Star className="w-2.5 h-2.5" />
                 FEATURED
+              </span>
+            )}
+            
+            {/* Editor's Pick Badge */}
+            {video.isEditorPick && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-500 text-white text-[10px] font-bold rounded">
+                <Star className="w-2.5 h-2.5" />
+                EDITOR'S PICK
+              </span>
+            )}
+            
+            {/* Trending Badge */}
+            {video.isTrending && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                <TrendingUp className="w-2.5 h-2.5" />
+                TRENDING
               </span>
             )}
           </div>
@@ -77,14 +95,14 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(video.status)}`}>
           {video.status || 'draft'}
         </span>
-       </td>
+      </td>
       
       <td className="px-6 py-4">
         <div className={`flex items-center gap-1 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
           <Calendar className="w-3 h-3" />
           <span>{formatDate(video.publishedAt || video.createdAt)}</span>
         </div>
-       </td>
+      </td>
       
       <td className="px-6 py-4">
         <div className="flex items-center gap-1">
@@ -93,7 +111,7 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
             {video.views?.toLocaleString() || '0'}
           </span>
         </div>
-       </td>
+      </td>
       
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">

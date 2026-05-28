@@ -45,7 +45,7 @@ export default function Navbar() {
     { name: "Home", href: "/" },
     { name: "Live TV", href: "/live-tv", hasLiveBadge: true },
     { name: "Blogs", href: "/blogs" },
-    { name: "About Us", href: "/about" },
+    { name: "About Us", href: "/aboutus" },
   ];
 
   const handleLogout = async () => {

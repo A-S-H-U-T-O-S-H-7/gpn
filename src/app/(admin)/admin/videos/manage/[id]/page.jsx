@@ -34,6 +34,7 @@ export default function ManageVideoPage() {
     isFeatured: false,
     isEditorPick: false,
     isTrending: false,
+    isHero: false,
   });
 
   const [videoPreview, setVideoPreview] = useState(null);
@@ -42,7 +43,6 @@ export default function ManageVideoPage() {
   const [isFetching, setIsFetching] = useState(isEditMode);
 
   useEffect(() => {
-    // Update preview when YouTube URL changes
     const videoId_from_url = getYouTubeId(formData.youtubeUrl);
     setVideoPreview(videoId_from_url);
   }, [formData.youtubeUrl]);
@@ -70,6 +70,7 @@ export default function ManageVideoPage() {
               isFeatured: video.isFeatured || false,
               isEditorPick: video.isEditorPick || false,
               isTrending: video.isTrending || false,
+              isHero: video.isHero || false,
             });
           } else {
             toast.error("Video not found");
@@ -123,6 +124,9 @@ export default function ManageVideoPage() {
         metadesc: formData.metadesc,
         status: formData.status,
         isFeatured: formData.isFeatured,
+        isEditorPick: formData.isEditorPick,  
+        isTrending: formData.isTrending,
+        isHero: formData.isHero,              
       };
 
       let result;

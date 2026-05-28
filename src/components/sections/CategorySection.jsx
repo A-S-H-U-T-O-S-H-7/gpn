@@ -1,97 +1,61 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { 
-  Globe, 
-  IndianRupee, 
-  Briefcase, 
-  Cpu, 
-  Trophy, 
-  Clapperboard,
-  GraduationCap,
-  Heart,
-  Leaf,
-  Apple,
-  ChevronRight,
-  ChevronLeft
-} from "lucide-react";
-
-const categories = [
-  {
-    id: 1,
-    name: "World",
-    description: "Latest global updates",
-    icon: Globe,
-    slug: "world",
-  },
-  {
-    id: 2,
-    name: "India",
-    description: "National news & more",
-    icon: IndianRupee,
-    slug: "india",
-  },
-  {
-    id: 3,
-    name: "Business",
-    description: "Market & Economy",
-    icon: Briefcase,
-    slug: "business",
-  },
-  {
-    id: 4,
-    name: "Technology",
-    description: "Tech & Innovation",
-    icon: Cpu,
-    slug: "technology",
-  },
-  {
-    id: 5,
-    name: "Sports",
-    description: "Live scores & news",
-    icon: Trophy,
-    slug: "sports",
-  },
-  {
-    id: 6,
-    name: "Entertainment",
-    description: "Movies & Celebrities",
-    icon: Clapperboard,
-    slug: "entertainment",
-  },
-  {
-    id: 7,
-    name: "Education",
-    description: "Learning & Careers",
-    icon: GraduationCap,
-    slug: "education",
-  },
-  {
-    id: 8,
-    name: "Health",
-    description: "Wellness & Medicine",
-    icon: Heart,
-    slug: "health",
-  },
-  {
-    id: 9,
-    name: "Lifestyle",
-    description: "Fashion & Living",
-    icon: Leaf,
-    slug: "lifestyle",
-  },
-  {
-    id: 10,
-    name: "Food",
-    description: "Recipes & Dining",
-    icon: Apple,
-    slug: "food",
-  },
-];
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import { getActiveCategories, getIconComponent } from "@/lib/services/categoryService";
 
 export default function CategorySection() {
+  const [categories, setCategories] = useState([]);
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
   const scrollContainerRef = useRef(null);
+  const autoScrollInterval = useRef(null);
+
+  // Fetch categories from Firebase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const result = await getActiveCategories();
+      if (result.success) {
+        setCategories(result.categories);
+      }
+      setLoading(false);
+    };
+    fetchCategories();
+  }, []);
+
+  // Auto-scroll effect (loop)
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollInterval.current) clearInterval(autoScrollInterval.current);
+    
+    autoScrollInterval.current = setInterval(() => {
+      if (scrollContainerRef.current && !isHovering && !showAll) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        
+        if (scrollLeft >= maxScroll - 10) {
+          scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+  }, [isHovering, showAll]);
+
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showAll && categories.length > 0) {
+      startAutoScroll();
+    }
+    return () => stopAutoScroll();
+  }, [showAll, categories.length, startAutoScroll, stopAutoScroll]);
 
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
@@ -103,20 +67,23 @@ export default function CategorySection() {
     }
   };
 
-  // Display first 6 categories in horizontal mode, all in grid mode
   const displayedCategories = showAll ? categories : categories.slice(0, 6);
 
-  // Reusable category card component
   const CategoryCard = ({ category }) => {
-    const IconComponent = category.icon;
+    const IconComponent = getIconComponent(category.icon);
+    const bgColor = category.backgroundColor || '#ff2b2b';
+    
     return (
-      <a
+      <Link
         href={`/category/${category.slug}`}
-        className="group flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+        className="group flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-gray-900 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-800"
       >
-        {/* Left Icon */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red/10 flex items-center justify-center group-hover:bg-red/20 transition-colors">
-          <IconComponent className="w-5 h-5 text-red" />
+        {/* Left Icon - White icon with dynamic background color */}
+        <div 
+          className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+          style={{ backgroundColor: bgColor }}
+        >
+          <IconComponent className="w-5 h-5 text-white" />
         </div>
         
         {/* Right Content */}
@@ -128,42 +95,68 @@ export default function CategorySection() {
             {category.description}
           </p>
         </div>
-      </a>
+      </Link>
     );
   };
+
+  if (loading) {
+    return (
+      <section className="py-8 bg-ghee dark:bg-slate-900/50">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-1 h-7 bg-red rounded-full"></div>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Explore by Category</h2>
+          </div>
+          <div className="flex gap-4 animate-pulse">
+            {[1,2,3,4,5,6].map((i) => (
+              <div key={i} className="w-64 h-16 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (categories.length === 0) return null;
 
   return (
     <section className="py-8 bg-ghee dark:bg-slate-900/50">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header with Red Bar */}
+        
+        {/* Section Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            {/* Red Bar */}
             <div className="w-1 h-7 bg-red rounded-full"></div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
               Explore by Category
             </h2>
           </div>
           <button
-            onClick={() => setShowAll(!showAll)}
+            onClick={() => {
+              setShowAll(!showAll);
+              if (!showAll) stopAutoScroll();
+              else startAutoScroll();
+            }}
             className="flex items-center gap-1 px-4 py-2 text-sm text-red hover:text-red-600 font-medium rounded-lg hover:bg-red/10 transition-colors"
           >
             {showAll ? "Show Less ↑" : "View All →"}
           </button>
         </div>
 
-        {/* Horizontal Scrollable View (when not expanded) */}
+        {/* Horizontal Scrollable View */}
         {!showAll && (
-          <div className="relative group">
-            {/* Left Scroll Button */}
+          <div 
+            className="relative group"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
             <button
               onClick={() => scroll("left")}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-slate-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors border border-gray-200 dark:border-gray-700"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            {/* Scrollable Container */}
             <div
               ref={scrollContainerRef}
               className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
@@ -176,17 +169,16 @@ export default function CategorySection() {
               ))}
             </div>
 
-            {/* Right Scroll Button */}
             <button
               onClick={() => scroll("right")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-slate-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors border border-gray-200 dark:border-gray-700"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Grid View (when expanded) */}
+        {/* Grid View */}
         {showAll && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {displayedCategories.map((category) => (

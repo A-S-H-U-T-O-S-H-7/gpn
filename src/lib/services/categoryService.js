@@ -18,27 +18,68 @@ const CATEGORIES_COLLECTION = 'categories';
 
 // Available icons for categories
 export const categoryIcons = [
-  { value: 'Globe', label: '🌍 Globe', icon: '🌍' },
-  { value: 'Landmark', label: '🏛️ Landmark', icon: '🏛️' },
-  { value: 'Briefcase', label: '💼 Briefcase', icon: '💼' },
-  { value: 'Cpu', label: '💻 Cpu', icon: '💻' },
-  { value: 'Trophy', label: '🏆 Trophy', icon: '🏆' },
-  { value: 'Clapperboard', label: '🎬 Clapperboard', icon: '🎬' },
-  { value: 'GraduationCap', label: '🎓 Graduation', icon: '🎓' },
-  { value: 'Heart', label: '❤️ Health', icon: '❤️' },
-  { value: 'Leaf', label: '🌿 Lifestyle', icon: '🌿' },
-  { value: 'Apple', label: '🍎 Food', icon: '🍎' },
-  { value: 'Car', label: '🚗 Automotive', icon: '🚗' },
-  { value: 'Rocket', label: '🚀 Space', icon: '🚀' },
+  { value: 'Globe', label: '🌍 Globe', icon: 'Globe' },
+  { value: 'Landmark', label: '🏛️ Landmark', icon: 'Landmark' },
+  { value: 'Briefcase', label: '💼 Briefcase', icon: 'Briefcase' },
+  { value: 'Cpu', label: '💻 Cpu', icon: 'Cpu' },
+  { value: 'Trophy', label: '🏆 Trophy', icon: 'Trophy' },
+  { value: 'Clapperboard', label: '🎬 Clapperboard', icon: 'Clapperboard' },
+  { value: 'GraduationCap', label: '🎓 Graduation', icon: 'GraduationCap' },
+  { value: 'Heart', label: '❤️ Health', icon: 'Heart' },
+  { value: 'Leaf', label: '🌿 Lifestyle', icon: 'Leaf' },
+  { value: 'Apple', label: '🍎 Food', icon: 'Apple' },
+  { value: 'Car', label: '🚗 Automotive', icon: 'Car' },
+  { value: 'Rocket', label: '🚀 Space', icon: 'Rocket' },
 ];
 
-// Get icon emoji by value
-export const getIconEmoji = (iconValue) => {
-  const icon = categoryIcons.find(i => i.value === iconValue);
-  return icon?.icon || '📁';
+// Import icons for mapping
+import { 
+  Globe, Landmark, Briefcase, Cpu, Trophy, Clapperboard,
+  GraduationCap, Heart, Leaf, Apple, Car, Rocket 
+} from 'lucide-react';
+
+// Map icon string to component
+export const getIconComponent = (iconName) => {
+  const iconMap = {
+    Globe, Landmark, Briefcase, Cpu, Trophy, Clapperboard,
+    GraduationCap, Heart, Leaf, Apple, Car, Rocket
+  };
+  return iconMap[iconName] || Globe;
 };
 
-// Get all categories (active ones)
+// Get all categories
+export const getCategories = async () => {
+  try {
+    const categoriesRef = collection(db, CATEGORIES_COLLECTION);
+    const q = query(categoriesRef, orderBy('order', 'asc'), orderBy('name', 'asc'));
+    const snapshot = await getDocs(q);
+    
+    const categories = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      categories.push({
+        id: doc.id,
+        name: data.name || '',
+        slug: data.slug || '',
+        description: data.description || '',
+        icon: data.icon || 'Globe',
+        iconColor: data.iconColor || '#ff2b2b',
+        backgroundColor: data.backgroundColor || '#ff2b2b',
+        order: data.order || 0,
+        status: data.status || 'active',
+        featured: data.featured || false,
+        createdAt: data.createdAt?.toDate?.() || null,
+      });
+    });
+    
+    return { success: true, categories };
+  } catch (error) {
+    console.error('Error getting categories:', error);
+    return { success: false, error: error.message, categories: [] };
+  }
+};
+
+// Get active categories (for homepage)
 export const getActiveCategories = async () => {
   try {
     const categoriesRef = collection(db, CATEGORIES_COLLECTION);
@@ -58,9 +99,9 @@ export const getActiveCategories = async () => {
         name: data.name || '',
         slug: data.slug || '',
         description: data.description || '',
-        icon: data.icon || 'FolderOpen',
-        iconEmoji: data.iconEmoji || getIconEmoji(data.icon),
-        color: data.color || '#ff2b2b',
+        icon: data.icon || 'Globe',
+        iconColor: data.iconColor || '#ff2b2b',
+        backgroundColor: data.backgroundColor || '#ff2b2b',
         order: data.order || 0,
         status: data.status || 'active',
         featured: data.featured || false,
@@ -74,35 +115,35 @@ export const getActiveCategories = async () => {
   }
 };
 
-// Get all categories (including inactive)
-export const getCategories = async () => {
+// Get category by slug
+export const getCategoryBySlug = async (slug) => {
   try {
     const categoriesRef = collection(db, CATEGORIES_COLLECTION);
-    const q = query(categoriesRef, orderBy('order', 'asc'), orderBy('name', 'asc'));
+    const q = query(categoriesRef, where('slug', '==', slug), where('status', '==', 'active'));
     const snapshot = await getDocs(q);
     
-    const categories = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      categories.push({
-        id: doc.id,
+    if (snapshot.empty) {
+      return { success: false, error: 'Category not found' };
+    }
+    
+    const docSnap = snapshot.docs[0];
+    const data = docSnap.data();
+    
+    return {
+      success: true,
+      category: {
+        id: docSnap.id,
         name: data.name || '',
         slug: data.slug || '',
         description: data.description || '',
-        icon: data.icon || 'FolderOpen',
-        iconEmoji: data.iconEmoji || getIconEmoji(data.icon),
-        color: data.color || '#ff2b2b',
-        order: data.order || 0,
-        status: data.status || 'active',
-        featured: data.featured || false,
-        createdAt: data.createdAt?.toDate?.() || null,
-      });
-    });
-    
-    return { success: true, categories };
+        icon: data.icon || 'Globe',
+        iconColor: data.iconColor || '#ff2b2b',
+        backgroundColor: data.backgroundColor || '#ff2b2b',
+      }
+    };
   } catch (error) {
-    console.error('Error getting categories:', error);
-    return { success: false, error: error.message, categories: [] };
+    console.error('Error getting category by slug:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -124,9 +165,9 @@ export const getCategoryById = async (categoryId) => {
         name: data.name || '',
         slug: data.slug || '',
         description: data.description || '',
-        icon: data.icon || 'FolderOpen',
-        iconEmoji: data.iconEmoji || getIconEmoji(data.icon),
-        color: data.color || '#ff2b2b',
+        icon: data.icon || 'Globe',
+        iconColor: data.iconColor || '#ff2b2b',
+        backgroundColor: data.backgroundColor || '#ff2b2b',
         order: data.order || 0,
         status: data.status || 'active',
         featured: data.featured || false,
@@ -156,9 +197,9 @@ export const createCategory = async (categoryData, adminData) => {
       name: categoryData.name,
       slug: categoryData.slug,
       description: categoryData.description || '',
-      icon: categoryData.icon || 'FolderOpen',
-      iconEmoji: getIconEmoji(categoryData.icon),
-      color: categoryData.color || '#ff2b2b',
+      icon: categoryData.icon || 'Globe',
+      iconColor: categoryData.iconColor || '#ff2b2b',
+      backgroundColor: categoryData.backgroundColor || '#ff2b2b',
       order: categoryData.order || 0,
       status: categoryData.status || 'active',
       featured: categoryData.featured || false,
@@ -166,7 +207,6 @@ export const createCategory = async (categoryData, adminData) => {
       updatedAt: serverTimestamp(),
     });
     
-    // Log activity
     await logActivity({
       action: ActivityActions.CREATE,
       entityType: ActivityEntityTypes.CATEGORY,
@@ -204,9 +244,9 @@ export const updateCategory = async (categoryId, categoryData, oldCategoryData, 
       name: categoryData.name,
       slug: categoryData.slug,
       description: categoryData.description || '',
-      icon: categoryData.icon || 'FolderOpen',
-      iconEmoji: getIconEmoji(categoryData.icon),
-      color: categoryData.color || '#ff2b2b',
+      icon: categoryData.icon || 'Globe',
+      iconColor: categoryData.iconColor || '#ff2b2b',
+      backgroundColor: categoryData.backgroundColor || '#ff2b2b',
       order: categoryData.order || 0,
       status: categoryData.status || 'active',
       featured: categoryData.featured || false,
@@ -215,7 +255,6 @@ export const updateCategory = async (categoryId, categoryData, oldCategoryData, 
     
     await updateDoc(categoryRef, updateData);
     
-    // Log activity
     await logActivity({
       action: ActivityActions.UPDATE,
       entityType: ActivityEntityTypes.CATEGORY,

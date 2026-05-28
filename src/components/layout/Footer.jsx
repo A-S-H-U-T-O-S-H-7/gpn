@@ -1,98 +1,259 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { Phone, Mail } from "lucide-react";
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube, FaLinkedinIn } from "react-icons/fa";
+import { getFooterData } from "@/lib/services/footerService";
 
 export default function Footer() {
-  return (
-    <footer className="bg-gray-900 dark:bg-black text-gray-300">
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        
-        {/* Main Footer Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          
-          {/* Column 1 - Logo & About */}
-          <div className="lg:col-span-1">
-            {/* Logo with Text */}
-            <div className="flex items-center gap-3 mb-4">
-              <Image
-                src="/logo.webp"
-                alt="GPN - Great Post News"
-                width={56}
-                height={56}
-                className="h-14 w-auto"
-              />
-              <div>
-                <h2 className="text-2xl font-bold text-white">GPN</h2>
-                <p className="text-xs text-gray-400 -mt-1">Great Post News</p>
-              </div>
-            </div>
-            <p className="text-gray-400 dark:text-gray-500 mb-4 leading-relaxed text-sm">
-              Your trusted source for breaking news, in-depth analysis, and engaging stories from around the world.
-            </p>
-            {/* Social Icons */}
-            <div className="flex gap-3">
-              <a href="#" className="w-9 h-9 rounded-full bg-gray-800 dark:bg-gray-800 hover:bg-red hover:text-white flex items-center justify-center transition-all duration-300 group">
-                <FaFacebookF className="w-4 h-4 text-gray-400 group-hover:text-white" />
-              </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-gray-800 dark:bg-gray-800 hover:bg-red hover:text-white flex items-center justify-center transition-all duration-300 group">
-                <FaTwitter className="w-4 h-4 text-gray-400 group-hover:text-white" />
-              </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-gray-800 dark:bg-gray-800 hover:bg-red hover:text-white flex items-center justify-center transition-all duration-300 group">
-                <FaInstagram className="w-4 h-4 text-gray-400 group-hover:text-white" />
-              </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-gray-800 dark:bg-gray-800 hover:bg-red hover:text-white flex items-center justify-center transition-all duration-300 group">
-                <FaYoutube className="w-4 h-4 text-gray-400 group-hover:text-white" />
-              </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-gray-800 dark:bg-gray-800 hover:bg-red hover:text-white flex items-center justify-center transition-all duration-300 group">
-                <FaLinkedinIn className="w-4 h-4 text-gray-400 group-hover:text-white" />
-              </a>
-            </div>
-          </div>
+  const [footerData, setFooterData] = useState({
+    general: null,
+    contact: null,
+    social: null,
+    legal: null,
+    footer: null,
+    categories: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-          {/* Column 2 - Quick Links */}
-          <div>
-            <h3 className="text-white dark:text-gray-200 font-semibold text-lg mb-4">Quick Links</h3>
-            <ul className="space-y-3">
-              <li><a href="/" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Home</a></li>
-              <li><a href="/live-tv" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Live TV</a></li>
-              <li><a href="/blogs" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Blogs</a></li>
-              <li><a href="/about" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">About Us</a></li>
-              <li><a href="/subscribe" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Subscribe</a></li>
-            </ul>
-          </div>
+  useEffect(() => {
+    const fetchData = async () => {
+      const result = await getFooterData();
+      if (result.success) {
+        setFooterData(result.data);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
 
-          {/* Column 3 - Categories */}
-          <div>
-            <h3 className="text-white dark:text-gray-200 font-semibold text-lg mb-4">Categories</h3>
-            <ul className="space-y-3">
-              <li><a href="/category/world" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">World</a></li>
-              <li><a href="/category/india" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">India</a></li>
-              <li><a href="/category/business" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Business</a></li>
-              <li><a href="/category/technology" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Technology</a></li>
-              <li><a href="/category/sports" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Sports</a></li>
-              <li><a href="/category/entertainment" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Entertainment</a></li>
-            </ul>
-          </div>
-
-          {/* Column 4 - Support */}
-          <div>
-            <h3 className="text-white dark:text-gray-200 font-semibold text-lg mb-4">Support</h3>
-            <ul className="space-y-3">
-              <li><a href="/contact-us" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Contact Us</a></li>
-              <li><a href="/privacy-policy" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Privacy Policy</a></li>
-              <li><a href="/terms" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Terms of Use</a></li>
-              <li><a href="/cookie-policy" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Cookie Policy</a></li>
-              <li><a href="/advertise" className="text-gray-400 dark:text-gray-500 hover:text-red hover:translate-x-1 transition-all duration-200 text-sm inline-block">Advertise With Us</a></li>
-            </ul>
+  if (loading) {
+    return (
+      <footer className="w-full">
+        <div className="bg-gradient-to-b from-slate-900 to-blue-950">
+          <div className="container mx-auto px-4 py-12 text-center">
+            <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         </div>
+      </footer>
+    );
+  }
 
-        {/* Bottom Bar - Copyright */}
-        <div className="border-t border-gray-800 dark:border-gray-800 mt-10 pt-6 text-center">
-          <p className="text-gray-500 dark:text-gray-600 text-sm">
-            © {new Date().getFullYear()} Great Post News. All rights reserved.
-          </p>
+  const { general, contact, social, legal, categories } = footerData;
+
+  return (
+    <footer className="w-full">
+      {/* Main Footer Section */}
+      <div className="bg-gradient-to-b border-t border-slate-600 dark:border-gray-700  from-slate-900 to-blue-950 text-gray-300">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          
+          {/* Desktop: 5 columns */}
+          <div className="hidden lg:grid lg:grid-cols-5 gap-8">
+            {/* Column 1 - Logo, Description & Social */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Link href="/">
+                  <Image
+                    src={general?.siteLogo || '/logo.webp'}
+                    alt="Great Post News Logo"
+                    width={50}
+                    height={50}
+                    className="object-contain w-12"
+                    priority
+                  />
+                </Link>
+                <h2 className="text-white font-semibold text-2xl">Great Post News</h2>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Your trusted source for breaking news, in-depth analysis, and engaging stories from around the world.
+              </p>
+              <div className="flex gap-3">
+                {social?.facebook && <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-900 border border-gray-200  flex items-center justify-center hover:bg-red-500"><FaFacebookF className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.twitter && <a href={social.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-900 border border-gray-200  flex items-center justify-center hover:bg-red-500"><FaTwitter className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.instagram && <a href={social.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-900 border border-gray-200  flex items-center justify-center hover:bg-red-500"><FaInstagram className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.youtube && <a href={social.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-900 border border-gray-200  flex items-center justify-center hover:bg-red-500"><FaYoutube className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.linkedin && <a href={social.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-900 border border-gray-200  flex items-center justify-center hover:bg-red-500"><FaLinkedinIn className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+              </div>
+            </div>
+
+            {/* Column 2 - Quick Links */}
+            <div>
+              <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Links</h4>
+              <ul className="space-y-2">
+                <li><Link href="/" className="text-gray-400 hover:text-red-500 text-base">Home</Link></li>
+                <li><Link href="/live-tv" className="text-gray-400 hover:text-red-500 text-base">Live TV</Link></li>
+                <li><Link href="/blogs" className="text-gray-400 hover:text-red-500 text-base">Blogs</Link></li>
+                <li><Link href="/aboutus" className="text-gray-400 hover:text-red-500 text-base">About Us</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 3 - Categories */}
+            <div>
+              <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Categories</h4>
+              <ul className="space-y-2">
+                {categories.slice(0, 6).map((category) => (
+                  <li key={category.id}>
+                    <Link href={`/category/${category.slug}`} className="text-gray-400 hover:text-red-500 text-base">
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Column 4 - Support */}
+            <div>
+              <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Support</h4>
+              <ul className="space-y-2">
+                <li><Link href="/contact-us" className="text-gray-400 hover:text-red-500 text-base">Contact Us</Link></li>
+                <li><Link href='/privacy-policy'className="text-gray-400 hover:text-red-500 text-base">Privacy Policy</Link></li>
+                <li><Link href='/terms' className="text-gray-400 hover:text-red-500 text-base">Terms of Use</Link></li>
+                <li><Link href= '/cookie-policy'className="text-gray-400 hover:text-red-500 text-base">Cookie Policy</Link></li>
+                <li><Link href="/advertise" className="text-gray-400 hover:text-red-500 text-base">Advertise With Us</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 5 - Quick Contact */}
+            <div>
+              <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Contact</h4>
+              <div className="space-y-2">
+                {contact?.contactEmail && (
+                  <a href={`mailto:${contact.contactEmail}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                    <Mail className="w-4 h-4 text-red-500" />
+                    {contact.contactEmail}
+                  </a>
+                )}
+                {contact?.phone1 && (
+                  <a href={`tel:${contact.phone1.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                    <Phone className="w-4 h-4 text-red-500" />
+                    {contact.phone1}
+                  </a>
+                )}
+                {contact?.phone2 && (
+                  <a href={`tel:${contact.phone2.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                    <Phone className="w-4 h-4 text-red-500" />
+                    {contact.phone2}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile/Tablet: 2 columns layout */}
+          <div className="lg:hidden">
+            {/* Row 1 - Column 1 */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Link href="/">
+                  <Image
+                    src={general?.siteLogo || '/logo.webp'}
+                    alt="Great Post News Logo"
+                    width={45}
+                    height={45}
+                    className="object-contain w-11"
+                    priority
+                  />
+                </Link>
+                <h2 className="text-white font-semibold text-2xl">Great Post News</h2>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Your trusted source for breaking news, in-depth analysis, and engaging stories from around the world.
+              </p>
+              <div className="flex gap-3">
+                {social?.facebook && <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-500"><FaFacebookF className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.twitter && <a href={social.twitter} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-500"><FaTwitter className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.instagram && <a href={social.instagram} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-500"><FaInstagram className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.youtube && <a href={social.youtube} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-500"><FaYoutube className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+                {social?.linkedin && <a href={social.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-500"><FaLinkedinIn className="w-3.5 h-3.5 text-gray-400 hover:text-white" /></a>}
+              </div>
+            </div>
+
+            {/* Row 2 - Column 2 and Column 3 in one row (2 columns) */}
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div>
+                <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Links</h4>
+                <ul className="space-y-2">
+                  <li><Link href="/" className="text-gray-400 hover:text-red-500 text-base">Home</Link></li>
+                  <li><Link href="/live-tv" className="text-gray-400 hover:text-red-500 text-base">Live TV</Link></li>
+                  <li><Link href="/blogs" className="text-gray-400 hover:text-red-500 text-base">Blogs</Link></li>
+                  <li><Link href="/aboutus" className="text-gray-400 hover:text-red-500 text-base">About Us</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Categories</h4>
+                <ul className="space-y-2">
+                  {categories.slice(0, 6).map((category) => (
+                    <li key={category.id}>
+                      <Link href={`/category/${category.slug}`} className="text-gray-400 hover:text-red-500 text-base">
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Row 3 - Column 4 and Column 5 in one row (2 columns) */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Support</h4>
+                <ul className="space-y-2">
+                  <li><Link href="/contact-us" className="text-gray-400 hover:text-red-500 text-base">Contact Us</Link></li>
+                  <li><Link href= '/privacy-policy' className="text-gray-400 hover:text-red-500 text-base">Privacy Policy</Link></li>
+                  <li><Link href= '/terms' className="text-gray-400 hover:text-red-500 text-base">Terms of Use</Link></li>
+                  <li><Link href= '/cookie-policy' className="text-gray-400 hover:text-red-500 text-base">Cookie Policy</Link></li>
+                  <li><Link href="/advertise" className="text-gray-400 hover:text-red-500 text-base">Advertise With Us</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Contact</h4>
+                <div className="space-y-2">
+                  {contact?.contactEmail && (
+                    <a href={`mailto:${contact.contactEmail}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                      <Mail className="w-4 h-4 text-red-500" />
+                      {contact.contactEmail}
+                    </a>
+                  )}
+                  {contact?.phone1 && (
+                    <a href={`tel:${contact.phone1.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                      <Phone className="w-4 h-4 text-red-500" />
+                      {contact.phone1}
+                    </a>
+                  )}
+                  {contact?.phone2 && (
+                    <a href={`tel:${contact.phone2.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
+                      <Phone className="w-4 h-4 text-red-500" />
+                      {contact.phone2}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Footer Section */}
+      <div className="bg-slate-950 text-gray-400">
+        <div className="container mx-auto px-4 py-5">
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
+              © {new Date().getFullYear()} Great Post News. All rights reserved
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Designed by{' '}
+              <a
+                href="https://alltimedata.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-red-500 hover:text-red-400"
+              >
+                ALL TIME DATA
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

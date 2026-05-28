@@ -218,6 +218,24 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
             icon={TrendingUp}
             isDark={isDark}
           />
+
+           {/* NEW: Hero Toggle */}
+  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+    <ToggleSwitch
+      enabled={formData.isHero}
+      onChange={(val) => onInputChange('isHero', val)}
+      label="⭐ Hero Section Feature"
+      icon={Star}
+      isDark={isDark}
+    />
+    {formData.isHero && (
+      <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          ⚠️ This news will appear as the Hero Story on homepage. Only one news can be hero at a time.
+        </p>
+      </div>
+    )}
+  </div>
         </div>
       </div>
 

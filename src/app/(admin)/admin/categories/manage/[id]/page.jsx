@@ -8,7 +8,7 @@ import useThemeStore from "@/lib/stores/useThemeStore";
 import useAdminAuthStore from "@/lib/stores/useAdminAuthStore";
 import CategoryForm from "@/components/admin/categories/CategoryForm";
 import CategorySidebar from "@/components/admin/categories/CategorySidebar";
-import { getCategoryById, createCategory, updateCategory, generateCategorySlug } from "@/lib/services/categoryService";
+import { getCategoryById, createCategory, updateCategory, deleteCategory, generateCategorySlug } from "@/lib/services/categoryService";
 import Swal from "sweetalert2";
 
 export default function ManageCategoryPage() {
@@ -25,7 +25,7 @@ export default function ManageCategoryPage() {
     description: "",
     icon: "Globe",
     iconEmoji: "🌍",
-    color: "#ff2b2b",
+    backgroundColor: "#ff2b2b", // ✅ Fix 1
     order: 0,
     status: "active",
     featured: false,
@@ -49,7 +49,7 @@ export default function ManageCategoryPage() {
               description: category.description || "",
               icon: category.icon || "Globe",
               iconEmoji: category.iconEmoji || "🌍",
-              color: category.color || "#ff2b2b",
+              backgroundColor: category.backgroundColor || "#ff2b2b", // ✅ Fix 2
               order: category.order || 0,
               status: category.status || "active",
               featured: category.featured || false,
@@ -98,7 +98,8 @@ export default function ManageCategoryPage() {
         slug: formData.slug || generateCategorySlug(formData.name),
         description: formData.description,
         icon: formData.icon,
-        color: formData.color,
+        iconEmoji: formData.iconEmoji,
+        backgroundColor: formData.backgroundColor, // ✅ Fix 3
         order: formData.order,
         status: formData.status,
         featured: formData.featured,
@@ -175,20 +176,19 @@ export default function ManageCategoryPage() {
           onClick={() => router.back()}
           className={`p-2 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
             isDarkMode
-              ? "border-rose-500/60  text-rose-600 bg-rose-100 hover:bg-rose-950/40"
+              ? "border-rose-500/60 text-rose-600 bg-rose-100 hover:bg-rose-950/40"
               : "border-rose-300 text-rose-600 bg-rose-200 hover:bg-rose-50"
           }`}
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        
-        
+
         <div>
-          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-red-500' : 'text-red-500'}`}>
+          <h1 className="text-2xl font-bold text-red-500">
             {isEditMode ? "Edit Category" : "Create New Category"}
           </h1>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'} mt-1`}>
+          <p className={`text-sm mt-1 ${isDarkMode ? "text-gray-300" : "text-gray-500"}`}>
             {isEditMode ? "Update your category details" : "Add a new category for News, Blogs, or Videos"}
           </p>
         </div>

@@ -43,11 +43,11 @@ export default function CategoryTableRow({ category, index, isDark, onEdit, onDe
         <div className="flex items-center gap-1">
           <div
             className="w-4 h-4 rounded-full"
-            style={{ backgroundColor: category.color || '#ff2b2b' }}
+            style={{ backgroundColor: category.backgroundColor || '#ff2b2b' }}
           />
           <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-            {category.color || '#ff2b2b'}
-          </span>
+  {category.backgroundColor || '#ff2b2b'}
+</span>
         </div>
        </td>
       

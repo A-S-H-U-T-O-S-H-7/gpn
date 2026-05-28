@@ -11,8 +11,10 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   serverTimestamp,
-  increment
+  increment,
+  writeBatch
 } from 'firebase/firestore';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
 import { getActiveCategories } from './categoryService';
@@ -42,6 +44,49 @@ export const getYouTubeThumbnail = (videoId) => {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 };
 
+// Set video as hero (removes hero from other videos and news)
+const setVideoAsHero = async (videoId, adminData) => {
+  try {
+    const batch = writeBatch(db);
+    
+    // Remove hero flag from all videos
+    const videosQuery = query(collection(db, VIDEOS_COLLECTION), where('isHero', '==', true));
+    const videosSnapshot = await getDocs(videosQuery);
+    videosSnapshot.forEach(doc => {
+      batch.update(doc.ref, { isHero: false });
+    });
+    
+    // Remove hero flag from all news
+    const newsQuery = query(collection(db, 'news'), where('isHero', '==', true));
+    const newsSnapshot = await getDocs(newsQuery);
+    newsSnapshot.forEach(doc => {
+      batch.update(doc.ref, { isHero: false });
+    });
+    
+    // Set hero flag on the selected video
+    const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
+    batch.update(videoRef, { isHero: true });
+    
+    await batch.commit();
+    
+    await logActivity({
+      action: ActivityActions.UPDATE,
+      entityType: ActivityEntityTypes.VIDEO,
+      entityId: videoId,
+      entityTitle: 'Hero Video',
+      details: `Set as Hero Video on homepage`,
+      adminId: adminData.id,
+      adminName: adminData.name,
+      adminRole: adminData.role,
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting video as hero:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Create video
 export const createVideo = async (videoData, adminData) => {
   try {
@@ -63,11 +108,17 @@ export const createVideo = async (videoData, adminData) => {
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
+      isHero: videoData.isHero || false,  // ← ADD THIS
       views: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       publishedAt: videoData.status === 'published' ? serverTimestamp() : null,
     });
+    
+    // If this video is marked as hero, set it as hero (removes from others)
+    if (videoData.isHero && videoRef.id) {
+      await setVideoAsHero(videoRef.id, adminData);
+    }
     
     await logActivity({
       action: ActivityActions.CREATE,
@@ -109,6 +160,7 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
+      isHero: videoData.isHero || false,  // ← ADD THIS
       updatedAt: serverTimestamp(),
     };
     
@@ -117,6 +169,11 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
     }
     
     await updateDoc(videoRef, updateData);
+    
+    // If this video is marked as hero, set it as hero (removes from others)
+    if (videoData.isHero && videoId) {
+      await setVideoAsHero(videoId, adminData);
+    }
     
     // Log specific changes
     if (oldVideoData.isFeatured !== videoData.isFeatured) {
@@ -243,6 +300,7 @@ export const getVideoById = async (videoId) => {
         isFeatured: data.isFeatured || false,
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
+        isHero: data.isHero || false,  // ← ADD THIS
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
@@ -282,6 +340,7 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         isFeatured: data.isFeatured || false,
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
+        isHero: data.isHero || false,  // ← ADD THIS
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -296,6 +355,8 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         videos = videos.filter(video => video.isEditorPick === true);
       } else if (featuredFilter === 'trending') {
         videos = videos.filter(video => video.isTrending === true);
+      } else if (featuredFilter === 'hero') {  // ← ADD THIS
+        videos = videos.filter(video => video.isHero === true);
       }
     }
     
@@ -423,7 +484,7 @@ export const getTrendingVideos = async (limit = 6) => {
 };
 
 // Get featured videos (for homepage)
-export const getFeaturedVideos = async (limit = 8) => {
+export const getFeaturedVideos = async (maxItems = 8) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
     const q = query(
@@ -431,7 +492,7 @@ export const getFeaturedVideos = async (limit = 8) => {
       where('status', '==', 'published'),
       where('isFeatured', '==', true),
       orderBy('createdAt', 'desc'),
-      limit(limit)
+      limit(maxItems)
     );
     const snapshot = await getDocs(q);
     
@@ -466,5 +527,230 @@ export const incrementVideoView = async (videoId) => {
   } catch (error) {
     console.error('Error incrementing view:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// Get video by slug
+export const getVideoBySlug = async (slug) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    const q = query(videosRef, where('slug', '==', slug), where('status', '==', 'published'));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return { success: false, error: 'Video not found' };
+    }
+    
+    const videoDoc = querySnapshot.docs[0];
+    const data = videoDoc.data();
+    
+    return {
+      success: true,
+      video: {
+        id: videoDoc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        description: data.description || '',
+        category: data.category || '',
+        thumbnail: data.thumbnail || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        createdAt: data.createdAt?.toDate?.() || null,
+        publishedAt: data.publishedAt?.toDate?.() || null,
+      }
+    };
+  } catch (error) {
+    console.error('Error getting video by slug:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get latest videos for homepage (with pagination)
+export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    let constraints = [
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc'),
+      limit(itemsPerPage)
+    ];
+    
+    const q = query(videosRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const videos = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      videos.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        date: data.createdAt?.toDate() || new Date(),
+        category: data.category || '',
+        thumbnail: data.thumbnail || '',
+        videoId: data.videoId || '',
+        isTrending: data.isTrending || false,
+      });
+    });
+    
+    // Format date for display
+    const formattedVideos = videos.map(video => ({
+      ...video,
+      formattedDate: getTimeAgo(video.date),
+      formattedViews: formatViews(video.views),
+    }));
+    
+    return { success: true, videos: formattedVideos, hasMore: videos.length === itemsPerPage };
+  } catch (error) {
+    console.error('Error getting latest videos:', error);
+    return { success: false, videos: [], hasMore: false };
+  }
+};
+
+// Get more videos (for load more functionality)
+export const getMoreVideos = async (lastDoc, itemsPerPage = 10) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    const q = query(
+      videosRef,
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastDoc),
+      limit(itemsPerPage)
+    );
+    const snapshot = await getDocs(q);
+    
+    const videos = [];
+    let lastVisible = null;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      videos.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        date: data.createdAt?.toDate() || new Date(),
+        category: data.category || '',
+        thumbnail: data.thumbnail || '',
+        videoId: data.videoId || '',
+        isTrending: data.isTrending || false,
+      });
+      lastVisible = doc;
+    });
+    
+    const formattedVideos = videos.map(video => ({
+      ...video,
+      formattedDate: getTimeAgo(video.date),
+      formattedViews: formatViews(video.views),
+    }));
+    
+    return { success: true, videos: formattedVideos, lastVisible, hasMore: videos.length === itemsPerPage };
+  } catch (error) {
+    console.error('Error getting more videos:', error);
+    return { success: false, videos: [], hasMore: false };
+  }
+};
+
+// Get videos by category slug
+export const getVideosByCategory = async (categorySlug, page = 1, itemsPerPage = 12) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    let constraints = [
+      where('status', '==', 'published'),
+      where('category', '==', categorySlug),
+      orderBy('createdAt', 'desc'),
+      limit(itemsPerPage)
+    ];
+    
+    const q = query(videosRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const videos = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      videos.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        description: data.description || '',
+        thumbnail: data.thumbnail || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        createdAt: data.createdAt?.toDate?.() || null,
+        publishedAt: data.publishedAt?.toDate?.() || null,
+      });
+    });
+    
+    return { success: true, videos };
+  } catch (error) {
+    console.error('Error getting videos by category:', error);
+    return { success: false, error: error.message, videos: [] };
+  }
+};
+
+// Helper functions
+function getTimeAgo(date) {
+  if (!date) return 'Recently';
+  const seconds = Math.floor((new Date() - date) / 1000);
+  const intervals = {
+    year: 31536000, month: 2592000, week: 604800, day: 86400, hour: 3600, minute: 60
+  };
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      if (unit === 'day' && interval === 1) return 'Yesterday';
+      if (unit === 'day') return `${interval} days ago`;
+      if (unit === 'hour') return `${interval} hour${interval > 1 ? 's' : ''} ago`;
+      if (unit === 'minute') return `${interval} minute${interval > 1 ? 's' : ''} ago`;
+      return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
+    }
+  }
+  return 'Just now';
+}
+
+function formatViews(views) {
+  if (!views) return '0';
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+  if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+  return views.toString();
+}
+
+export const getFeaturedVideosForHero = async (maxItems = 5) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    const q = query(
+      videosRef, 
+      where('status', '==', 'published'),
+      where('isFeatured', '==', true),
+      orderBy('publishedAt', 'desc'),
+      limit(maxItems) 
+    );
+    const snapshot = await getDocs(q);
+    
+    const videos = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      videos.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        thumbnail: data.thumbnail || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        videoId: data.videoId || '',
+        publishedAt: data.publishedAt?.toDate?.() || new Date(),
+      });
+    });
+    
+    return { success: true, videos };
+  } catch (error) {
+    console.error('Error getting featured videos for hero:', error);
+    return { success: false, error: error.message, videos: [] };
   }
 };

@@ -33,6 +33,7 @@ export default function ManageNewsPage() {
     isBreaking: false,
     isEditorPick: false,
     isTrending: false,
+    isHero: false,
     featuredImage: null,
     featuredImagePreview: null,
     existingImageUrl: null,
@@ -64,6 +65,7 @@ export default function ManageNewsPage() {
               isBreaking: news.isBreaking || false,
               isEditorPick: news.isEditorPick || false,
               isTrending: news.isTrending || false,
+              isHero: news.isHero || false,
               featuredImage: null,
               featuredImagePreview: news.image || null,
               existingImageUrl: news.image || null,
@@ -122,6 +124,7 @@ export default function ManageNewsPage() {
         isBreaking: formData.isBreaking,
         isEditorPick: formData.isEditorPick,
         isTrending: formData.isTrending,
+        isHero: formData.isHero,
       };
 
       let result;

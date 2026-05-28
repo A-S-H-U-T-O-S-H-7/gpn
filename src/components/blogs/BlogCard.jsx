@@ -18,9 +18,55 @@ const gradients = [
 // Emojis for blog thumbnails
 const emojis = ["📰", "📝", "💡", "🚀", "💼", "🎯", "📊", "🎨", "💻", "📱", "🔍", "⭐"];
 
+// Helper function to safely format date
+const formatDate = (dateInput) => {
+  if (!dateInput) return 'Recent';
+  
+  try {
+    // If it's already a string, use it directly
+    if (typeof dateInput === 'string') {
+      const date = new Date(dateInput);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      }
+      return dateInput;
+    }
+    
+    // If it's a Date object
+    if (dateInput instanceof Date) {
+      return dateInput.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+    
+    // If it's a timestamp or Firestore timestamp
+    if (dateInput?.toDate) {
+      return dateInput.toDate().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+    
+    return 'Recent';
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Recent';
+  }
+};
+
 export default function BlogCard({ post, index }) {
-  const gradient = gradients[post.id % gradients.length];
-  const emoji = emojis[post.id % emojis.length];
+  const gradient = gradients[(post.id?.length || index) % gradients.length];
+  const emoji = emojis[(post.id?.length || index) % emojis.length];
+  
+  // Safely get formatted date
+  const displayDate = formatDate(post.date || post.formattedDate);
 
   return (
     <Link href={`/blogs/${post.slug}`}>
@@ -36,13 +82,17 @@ export default function BlogCard({ post, index }) {
           }} />
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-7xl transform group-hover:scale-110 transition-transform duration-500">
-              {emoji}
+              {post.image ? (
+                <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+              ) : (
+                emoji
+              )}
             </span>
           </div>
           {/* Read Time Badge */}
           <div className="absolute bottom-3 left-3 z-20 bg-black/70 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
             <Clock className="w-3 h-3 text-white" />
-            <span className="text-white text-xs">{post.readTime} min read</span>
+            <span className="text-white text-xs">{post.readTime || 5} min read</span>
           </div>
         </div>
 
@@ -62,13 +112,13 @@ export default function BlogCard({ post, index }) {
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              <span>{post.date}</span>
+              <span>{displayDate}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white text-[10px] font-bold">
-                {post.author?.charAt(0)}
+                {post.author?.charAt(0) || 'G'}
               </div>
-              <span className="text-xs font-medium">{post.author}</span>
+              <span className="text-xs font-medium">{post.author || 'GPN Editor'}</span>
             </div>
           </div>
 

@@ -1,98 +1,164 @@
 "use client";
 
-import { Eye, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Eye, TrendingUp, Play } from "lucide-react";
+import { getMostWatched } from "@/lib/services/homepageService";
 
-const mostWatched = [
-  {
-    id: 1,
-    rank: 1,
-    title: "Global Markets Update: What You Need to Know Today",
-    views: "2.4K",
-    timeAgo: "2h ago",
-    image: "/images/watched1.jpg",
-  },
-  {
-    id: 2,
-    rank: 2,
-    title: "Inside the World's Most Advanced Electric Car",
-    views: "1.9K",
-    timeAgo: "3h ago",
-    image: "/images/watched2.jpg",
-  },
-  {
-    id: 3,
-    rank: 3,
-    title: "Historic Win for India in T20 World Cup",
-    views: "1.7K",
-    timeAgo: "4h ago",
-    image: "/images/watched3.jpg",
-  },
-  {
-    id: 4,
-    rank: 4,
-    title: "AI Breakthrough: New Model Surpasses Human Limits",
-    views: "1.5K",
-    timeAgo: "5h ago",
-    image: "/images/watched4.jpg",
-  },
-  {
-    id: 5,
-    rank: 5,
-    title: "Top 10 Travel Destinations for 2024",
-    views: "1.4K",
-    timeAgo: "6h ago",
-    image: "/images/watched5.jpg",
-  },
-];
+function formatViews(views) {
+  if (!views) return "0";
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + "M";
+  if (views >= 1000) return (views / 1000).toFixed(1) + "K";
+  return views.toString();
+}
 
 export default function MostWatched() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMostWatched = async () => {
+      const result = await getMostWatched(5);
+      if (result.success) setItems(result.data);
+      setLoading(false);
+    };
+    fetchMostWatched();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-1 h-6 bg-red-500 rounded-full flex-shrink-0" />
+          <span
+            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-md"
+            style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+          >
+            Most Watched
+          </span>
+          <TrendingUp className="w-4 h-4 text-red-500" />
+        </div>
+        {/* Skeleton rows */}
+        <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 animate-pulse">
+              <div className="w-8 h-5 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0" />
+              <div className="w-16 h-14 md:w-20 md:h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-1 h-6 bg-red-500 rounded-full flex-shrink-0" />
+          <span
+            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-md"
+            style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+          >
+            Most Watched
+          </span>
+          <TrendingUp className="w-4 h-4 text-red-500" />
+        </div>
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+          No watched content available
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* Section Header with Red Bar */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-1 h-7 bg-red rounded-full"></div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="flex flex-col">
+
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="w-1 h-6 bg-red-500 rounded-full flex-shrink-0" />
+        <span
+          className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-md"
+          style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
+        >
           Most Watched
-        </h2>
-        <TrendingUp className="w-5 h-5 text-red" />
+        </span>
+        <TrendingUp className="w-4 h-4 text-red-500" />
       </div>
 
-      {/* Most Watched List */}
-      <div className="space-y-3">
-        {mostWatched.map((item) => (
-          <div
+      {/* List */}
+      <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+        {items.map((item) => (
+          <Link
             key={item.id}
-            className="group flex items-center gap-4 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+            href={item.type === "video" ? `/video/${item.slug}` : `/news/${item.slug}`}
+            className="group flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-red-50/30 dark:hover:bg-red-950/10 -mx-3 px-3 rounded-xl transition-colors duration-200"
           >
-            {/* Rank Number */}
-            <div className="flex-shrink-0 w-10 text-center">
-              <span className="text-2xl font-bold text-gray-300 dark:text-gray-600 group-hover:text-red transition-colors">
+            {/* Rank */}
+            <div className="flex-shrink-0 w-8 text-center">
+              <span
+                className="text-lg font-black leading-none"
+                style={{
+                  color: item.rank <= 3 ? "#ef4444" : "#d1d5db",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
                 {item.rank.toString().padStart(2, "0")}
               </span>
             </div>
 
             {/* Thumbnail */}
-            <div className="flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
-              <span className="text-gray-400 text-xs">Img</span>
+            <div className="flex-shrink-0 w-16 h-14 md:w-20 md:h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 relative">
+              {item.image ? (
+                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-gray-400 dark:text-gray-600 text-xs">Img</span>
+                </div>
+              )}
+              {item.type === "video" && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Play className="w-6 h-6 text-white" />
+                </div>
+              )}
+              {item.type === "video" && item.duration && (
+                <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
+                  {item.duration}
+                </div>
+              )}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-red transition-colors">
-                {item.title}
-              </h3>
-              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-start gap-1.5 flex-wrap">
+                <h3 className="text-xs md:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors leading-snug">
+                  {item.title}
+                </h3>
+                {item.type === "video" && (
+                  <span className="text-[9px] text-red-500 font-medium border border-red-200 dark:border-red-800 px-1 py-0.5 rounded flex-shrink-0 mt-0.5">
+                    VIDEO
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-xs text-gray-400 dark:text-gray-500">
                 <div className="flex items-center gap-1">
                   <Eye className="w-3 h-3" />
-                  <span>{item.views} views</span>
+                  <span>{formatViews(item.views)}</span>
                 </div>
-                <span>•</span>
+                <span>·</span>
                 <span>{item.timeAgo}</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
+
     </div>
   );
 }

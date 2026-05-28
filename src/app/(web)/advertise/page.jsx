@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { 
-  Building, User, Mail, Phone, Globe, 
-  DollarSign, Calendar, MessageSquare, Send, 
-  CheckCircle, AlertCircle, TrendingUp, Users, Eye
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Building, User, Mail, Phone, Globe,
+  Send, CheckCircle, TrendingUp, Users,
 } from "lucide-react";
 import { Target, BarChart, Headphones } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -28,26 +27,26 @@ export default function AdvertisePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.companyName || !formData.contactPerson || !formData.email || !formData.phone || !formData.message) {
       toast.error("Please fill all required fields");
       return;
     }
-    
+
     if (!/^\d{10}$/.test(formData.phone)) {
       toast.error("Please enter a valid 10-digit phone number");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     const result = await submitAdvertiseInquiry(formData);
-    
+
     if (result.success) {
       setIsSuccess(true);
       toast.success("Inquiry submitted successfully!");
@@ -62,27 +61,27 @@ export default function AdvertisePage() {
         duration: "",
         message: "",
       });
-      setTimeout(() => setIsSuccess(false), 5000);
+      setTimeout(() => setIsSuccess(false), 6000);
     } else {
       toast.error(result.error || "Failed to submit inquiry");
     }
-    
+
     setIsSubmitting(false);
   };
 
   const adTypes = [
-    { value: "display", label: "Display Banner", desc: "Standard banner ads on website" },
-    { value: "video", label: "Video Ad", desc: "Pre-roll / Mid-roll video advertisements" },
-    { value: "native", label: "Native Ad", desc: "In-feed sponsored content" },
-    { value: "newsletter", label: "Newsletter Ad", desc: "Email newsletter sponsorship" },
-    { value: "sponsored", label: "Sponsored Article", desc: "Custom written sponsored content" },
+    { value: "display", label: "Display Banner" },
+    { value: "video", label: "Video Ad" },
+    { value: "native", label: "Native Ad" },
+    { value: "newsletter", label: "Newsletter Ad" },
+    { value: "sponsored", label: "Sponsored Article" },
   ];
 
   const budgetRanges = [
     { value: "below_10000", label: "Below ₹10,000" },
-    { value: "10000_25000", label: "₹10,000 - ₹25,000" },
-    { value: "25000_50000", label: "₹25,000 - ₹50,000" },
-    { value: "50000_100000", label: "₹50,000 - ₹1,00,000" },
+    { value: "10000_25000", label: "₹10,000 – ₹25,000" },
+    { value: "25000_50000", label: "₹25,000 – ₹50,000" },
+    { value: "50000_100000", label: "₹50,000 – ₹1,00,000" },
     { value: "above_100000", label: "Above ₹1,00,000" },
   ];
 
@@ -95,319 +94,426 @@ export default function AdvertisePage() {
     { value: "1_year", label: "1 Year" },
   ];
 
+  const whyItems = [
+    {
+      icon: <Users className="w-4 h-4" />,
+      iconBg: "bg-teal-100 dark:bg-teal-900/40",
+      iconColor: "text-teal-600 dark:text-teal-400",
+      title: "Massive Reach",
+      desc: "Over 50 million monthly readers across India",
+    },
+    {
+      icon: <Target className="w-4 h-4" />,
+      iconBg: "bg-violet-100 dark:bg-violet-900/40",
+      iconColor: "text-violet-600 dark:text-violet-400",
+      title: "Targeted Advertising",
+      desc: "Reach specific demographics and interests",
+    },
+    {
+      icon: <BarChart className="w-4 h-4" />,
+      iconBg: "bg-sky-100 dark:bg-sky-900/40",
+      iconColor: "text-sky-600 dark:text-sky-400",
+      title: "Performance Analytics",
+      desc: "Detailed reports on ad performance",
+    },
+    {
+      icon: <Headphones className="w-4 h-4" />,
+      iconBg: "bg-teal-100 dark:bg-teal-900/40",
+      iconColor: "text-teal-600 dark:text-teal-400",
+      title: "Dedicated Support",
+      desc: "24/7 customer support for advertisers",
+    },
+  ];
+
+  // Shared input className
+  const inputCls = `
+    w-full pl-10 pr-4 py-2.5 text-sm rounded-xl
+    bg-white dark:bg-slate-900
+    text-slate-900 dark:text-white
+    placeholder:text-slate-400 dark:placeholder:text-slate-500
+    border border-slate-200 dark:border-slate-700
+    focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
+    focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
+    transition-all duration-200
+  `;
+
+  const selectCls = `
+    w-full px-4 py-2.5 text-sm rounded-xl
+    bg-white dark:bg-slate-900
+    text-slate-900 dark:text-white
+    border border-slate-200 dark:border-slate-700
+    focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
+    focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
+    transition-all duration-200
+  `;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Advertise With Us
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-violet-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-4 pb-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+
+      {/* Decorative blobs */}
+      <div className="fixed top-0 right-0 w-96 h-96 bg-teal-300/20 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-80 h-80 bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-7xl mx-auto">
+
+        {/* ── Header ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-white/80 dark:bg-white/10 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 backdrop-blur-sm mb-5 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+            Partner with us
+          </span>
+
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4 leading-tight">
+            Advertise{" "}
+            <span className="bg-gradient-to-r from-teal-500 to-violet-500 bg-clip-text text-transparent">
+              with us
+            </span>
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+
+          <p className="text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
             Reach millions of readers across India. Choose from our variety of advertising options.
           </p>
-          <div className="w-20 h-1 bg-red mx-auto mt-4 rounded-full" />
-        </div>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
-            <Users className="w-10 h-10 text-red mx-auto mb-3" />
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">50M+</h3>
-            <p className="text-gray-600 dark:text-gray-400">Monthly Readers</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
-            <Eye className="w-10 h-10 text-red mx-auto mb-3" />
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">120+</h3>
-            <p className="text-gray-600 dark:text-gray-400">Countries Covered</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center shadow-lg">
-            <TrendingUp className="w-10 h-10 text-red mx-auto mb-3" />
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">24/7</h3>
-            <p className="text-gray-600 dark:text-gray-400">Live Coverage</p>
-          </div>
-        </div>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-teal-400 to-violet-400 mx-auto mt-5" />
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Left Side - Info */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                Why Advertise With GPN?
+        {/* ── Main Grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+          {/* ── Left Info Panel ── */}
+          <motion.div
+            initial={{ opacity: 0, x: -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="lg:col-span-2 space-y-5"
+          >
+            {/* Why advertise */}
+            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-gray-400 dark:border-slate-700/60 rounded-2xl shadow-xl shadow-teal-100/40 dark:shadow-none p-7">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+                Why advertise with GPN?
               </h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red/10 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-red" />
+              <div className="space-y-5">
+                {whyItems.map((item) => (
+                  <div key={item.title} className="flex items-start gap-3.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.iconBg} ${item.iconColor}`}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-0.5">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {item.desc}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Massive Reach</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Over 50 million monthly readers across India</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red/10 flex items-center justify-center flex-shrink-0">
-                    <Target className="w-4 h-4 text-red" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Targeted Advertising</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Reach specific demographics and interests</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red/10 flex items-center justify-center flex-shrink-0">
-                    <BarChart className="w-4 h-4 text-red" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Performance Analytics</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Detailed reports on ad performance</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red/10 flex items-center justify-center flex-shrink-0">
-                    <Headphones className="w-4 h-4 text-red" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Dedicated Support</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">24/7 customer support for advertisers</p>
-                  </div>
-                </div>
+                ))}
               </div>
+
+              <div className="mt-8 h-1.5 w-full rounded-full bg-gradient-to-r from-teal-400 via-violet-400 to-sky-400 opacity-60" />
             </div>
 
-            <div className="bg-gradient-to-r from-red-600 to-red-500 rounded-2xl shadow-lg p-6 text-white">
-              <h3 className="text-xl font-bold mb-2">Ready to Get Started?</h3>
-              <p className="text-red-100 mb-4">
-                Fill out the form and our advertising team will contact you within 24 hours.
+            {/* CTA contact strip */}
+            <div className="bg-gradient-to-br from-teal-500 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-teal-500/20 dark:shadow-teal-500/10">
+              <h3 className="text-lg font-bold mb-1.5">Ready to get started?</h3>
+              <p className="text-sm text-white/80 mb-5 leading-relaxed">
+                Our advertising team will reach out within 24 hours of your inquiry.
               </p>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>ads@gpn.com</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+91 1234567890</span>
-                </div>
+              <div className="space-y-2.5">
+                <a
+                  href="mailto:ads@gpn.com"
+                  className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-3.5 h-3.5" />
+                  </span>
+                  ads@gpn.com
+                </a>
+                <a
+                  href="tel:+911234567890"
+                  className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
+                >
+                  <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-3.5 h-3.5" />
+                  </span>
+                  +91 1234567890
+                </a>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Right Side - Form */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8">
-            {isSuccess ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-12"
-              >
-                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Inquiry Submitted!
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Thank you for your interest. Our advertising team will contact you soon.
-                </p>
-                <button
-                  onClick={() => setIsSuccess(false)}
-                  className="mt-6 px-6 py-2 bg-red text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Submit Another Inquiry
-                </button>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Company Name *
-                    </label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        name="companyName"
-                        value={formData.companyName}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                        placeholder="Enter company name"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Contact Person *
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        name="contactPerson"
-                        value={formData.contactPerson}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                        placeholder="Enter contact person name"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
+          {/* ── Form Card ── */}
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="lg:col-span-3"
+          >
+            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-gray-400 dark:border-slate-700/60 rounded-2xl shadow-xl shadow-violet-100/40 dark:shadow-none p-3 md:p-5">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Email *
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                        placeholder="Enter email address"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Phone Number *
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                        placeholder="10-digit mobile number"
-                        maxLength={10}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Website (Optional)
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="url"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                      placeholder="https://yourcompany.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Ad Type *
-                    </label>
-                    <select
-                      name="adType"
-                      value={formData.adType}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                      required
-                    >
-                      {adTypes.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Budget Range *
-                    </label>
-                    <select
-                      name="budget"
-                      value={formData.budget}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                      required
-                    >
-                      <option value="">Select budget range</option>
-                      {budgetRanges.map(budget => (
-                        <option key={budget.value} value={budget.value}>{budget.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Campaign Duration *
-                  </label>
-                  <select
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20"
-                    required
+              <AnimatePresence mode="wait">
+                {isSuccess ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    className="flex flex-col items-center justify-center text-center py-8"
                   >
-                    <option value="">Select duration</option>
-                    {durations.map(dur => (
-                      <option key={dur.value} value={dur.value}>{dur.label}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-100 to-violet-100 dark:from-teal-900/50 dark:to-violet-900/50 flex items-center justify-center mb-5 shadow-inner">
+                      <CheckCircle className="w-10 h-10 text-teal-500" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                      Inquiry submitted!
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed max-w-xs">
+                      Thank you for your interest. Our advertising team will contact you within 24 hours.
+                    </p>
+                    <button
+                      onClick={() => setIsSuccess(false)}
+                      className="px-6 py-2.5 rounded-full text-sm font-semibold bg-gradient-to-r from-teal-500 to-violet-500 text-white hover:opacity-90 transition-opacity shadow-md"
+                    >
+                      Submit another inquiry
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                  >
+                    {/* Heading */}
+                    <div className="flex items-center gap-2.5 mb-4">
+                      <div className="w-1 h-5 rounded-full bg-gradient-to-b from-teal-400 to-violet-400" />
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Advertise inquiry form
+                      </h3>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Message / Requirements *
-                  </label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:border-red focus:ring-2 focus:ring-red/20 resize-none"
-                    placeholder="Tell us about your advertising requirements..."
-                    required
-                  />
-                </div>
+                    {/* Row 1 — Company + Contact */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Company name <span className="text-teal-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            name="companyName"
+                            value={formData.companyName}
+                            onChange={handleChange}
+                            placeholder="Your company"
+                            required
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Submit Inquiry
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-          </div>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Contact person <span className="text-teal-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            name="contactPerson"
+                            value={formData.contactPerson}
+                            onChange={handleChange}
+                            placeholder="Full name"
+                            required
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2 — Email + Phone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Email <span className="text-teal-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="you@company.com"
+                            required
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Phone <span className="text-teal-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="10-digit number"
+                            maxLength={10}
+                            required
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Website */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        Website
+                      </label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="url"
+                          name="website"
+                          value={formData.website}
+                          onChange={handleChange}
+                          placeholder="https://yourcompany.com"
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 3 — Ad Type + Budget */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Ad type <span className="text-teal-500">*</span>
+                        </label>
+                        <select
+                          name="adType"
+                          value={formData.adType}
+                          onChange={handleChange}
+                          required
+                          className={selectCls}
+                        >
+                          {adTypes.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                          Budget range <span className="text-teal-500">*</span>
+                        </label>
+                        <select
+                          name="budget"
+                          value={formData.budget}
+                          onChange={handleChange}
+                          required
+                          className={selectCls}
+                        >
+                          <option value="">Select budget</option>
+                          {budgetRanges.map((b) => (
+                            <option key={b.value} value={b.value}>{b.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Duration */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        Campaign duration <span className="text-teal-500">*</span>
+                      </label>
+                      <select
+                        name="duration"
+                        value={formData.duration}
+                        onChange={handleChange}
+                        required
+                        className={selectCls}
+                      >
+                        <option value="">Select duration</option>
+                        {durations.map((d) => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Message */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        Message / requirements <span className="text-teal-500">*</span>
+                      </label>
+                      <textarea
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        rows={4}
+                        placeholder="Tell us about your advertising requirements…"
+                        required
+                        className="
+                          w-full px-4 py-2.5 text-sm rounded-xl resize-none
+                          bg-white dark:bg-slate-900
+                          text-slate-900 dark:text-white
+                          placeholder:text-slate-400 dark:placeholder:text-slate-500
+                          border border-slate-200 dark:border-slate-700
+                          focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
+                          focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
+                          transition-all duration-200
+                        "
+                      />
+                    </div>
+
+                    {/* Submit */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="
+                        w-full cursor-pointer flex items-center justify-center gap-2.5
+                        py-3.5 px-6 rounded-xl text-sm font-bold tracking-wide text-white
+                        bg-gradient-to-r from-teal-500 to-violet-500
+                        hover:from-teal-600 hover:to-violet-600
+                        focus:outline-none focus:ring-2 focus:ring-teal-400/50
+                        disabled:opacity-60 disabled:cursor-not-allowed
+                        shadow-lg shadow-teal-500/25 dark:shadow-teal-500/10
+                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99]
+                      "
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Submitting…
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Submit inquiry
+                        </>
+                      )}
+                    </button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>
   );
 }
-

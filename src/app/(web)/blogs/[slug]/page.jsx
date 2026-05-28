@@ -3,45 +3,53 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark, User, Tag } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { getPublishedBlogBySlug, incrementBlogView } from "@/lib/services/blogService";
 
-// Mock blog data - In production, fetch from Firebase
-const mockBlogs = {
-  "future-of-digital-news-2025": {
-    id: 1,
-    slug: "future-of-digital-news-2025",
-    title: "The Future of Digital News: What to Expect in 2025",
-    description: "Explore how AI, video content, and personalized feeds are transforming the way we consume news.",
-    content: `
-      <p>The digital news landscape is evolving faster than ever before. As we look ahead to 2025, several key trends are shaping the future of how we consume and interact with news content.</p>
-      
-      <h2>The Rise of AI-Powered Personalization</h2>
-      <p>Artificial intelligence is revolutionizing news curation. Algorithms are becoming sophisticated enough to understand individual preferences while maintaining editorial standards and avoiding echo chambers.</p>
-      
-      <h2>Video-First Approach</h2>
-      <p>Short-form video content is dominating user engagement. News platforms are investing heavily in vertical video formats optimized for mobile consumption.</p>
-      
-      <h2>Trust and Verification</h2>
-      <p>With misinformation on the rise, news platforms are implementing robust verification systems and blockchain technology to ensure content authenticity.</p>
-      
-      <h2>Interactive Storytelling</h2>
-      <p>Immersive experiences through AR/VR and interactive graphics are becoming mainstream, allowing readers to engage with stories in new ways.</p>
-      
-      <p>The future of digital news is exciting, challenging, and full of opportunities for those who adapt quickly to changing consumer behaviors.</p>
-    `,
-    category: "Technology",
-    date: "May 15, 2024",
-    readTime: 5,
-    views: "12.5K",
-    likes: "892",
-    author: "Rajesh Kumar",
-    authorBio: "Senior Technology Journalist with 10+ years of experience covering digital trends and innovations.",
-    tags: ["Digital News", "AI", "Future Trends"],
-    thumbnail: "/blogs/blog1.jpg",
-  },
-  // Add more blog data for other slugs...
-};
+function formatDate(date) {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatViews(views) {
+  if (!views) return '0';
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+  if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+  return views.toString();
+}
+
+function getCategoryEmoji(category) {
+  const emojis = {
+    "Technology": "💻",
+    "Development": "🛠️",
+    "Opinion": "💭",
+    "Strategy": "🎯",
+    "SEO": "📈",
+    "Design": "🎨",
+    "Business": "💼",
+    "Default": "📰"
+  };
+  return emojis[category] || emojis.Default;
+}
+
+function getGradient(category) {
+  const gradients = {
+    "Technology": "from-blue-600 to-cyan-500",
+    "Development": "from-gray-700 to-gray-600",
+    "Opinion": "from-purple-600 to-pink-500",
+    "Strategy": "from-emerald-600 to-teal-500",
+    "SEO": "from-yellow-600 to-amber-500",
+    "Design": "from-rose-600 to-pink-500",
+    "Business": "from-indigo-600 to-blue-500",
+    "Default": "from-red-600 to-orange-500"
+  };
+  return gradients[category] || gradients.Default;
+}
 
 export default function BlogDetailsPage() {
   const { slug } = useParams();
@@ -52,16 +60,34 @@ export default function BlogDetailsPage() {
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
-    // Simulate API fetch
-    setIsLoading(true);
-    setTimeout(() => {
-      const blogData = mockBlogs[slug];
-      if (blogData) {
-        setBlog(blogData);
+    const fetchBlog = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getPublishedBlogBySlug(slug);
+        if (result.success && result.blog) {
+          setBlog(result.blog);
+          
+          // Increment view count
+          const hasViewed = sessionStorage.getItem(`blog_viewed_${result.blog.id}`);
+          if (!hasViewed && result.blog.id) {
+            await incrementBlogView(result.blog.id);
+            sessionStorage.setItem(`blog_viewed_${result.blog.id}`, 'true');
+            setBlog(prev => ({ ...prev, views: (prev?.views || 0) + 1 }));
+          }
+        } else {
+          toast.error("Blog not found");
+          router.push("/blogs");
+        }
+      } catch (error) {
+        console.error("Error fetching blog:", error);
+        toast.error("Failed to load blog");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, 300);
-  }, [slug]);
+    };
+    
+    if (slug) fetchBlog();
+  }, [slug, router]);
 
   if (isLoading) {
     return (
@@ -79,6 +105,7 @@ export default function BlogDetailsPage() {
     return (
       <div className="min-h-screen bg-ghee dark:bg-slate-900/50 flex items-center justify-center">
         <div className="text-center">
+          <div className="text-6xl mb-4">📄</div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">Blog post not found</p>
           <Link href="/blogs" className="px-6 py-2 bg-red text-white rounded-lg hover:bg-red-600 transition-colors">
@@ -89,22 +116,28 @@ export default function BlogDetailsPage() {
     );
   }
 
+  const categoryEmoji = getCategoryEmoji(blog.category);
+  const gradient = getGradient(blog.category);
+
   return (
     <div className="min-h-screen bg-ghee dark:bg-slate-900/50 pb-16">
       
       {/* Hero Section */}
-      <div className="relative h-[50vh] md:h-[60vh] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 to-gray-900/30 z-10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ghee dark:from-slate-900/50 via-transparent to-transparent z-20" />
-        
-        <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-          <span className="text-6xl">📰</span>
+      <div className={`relative h-[50vh] md:h-[55vh] overflow-hidden bg-gradient-to-br ${gradient}`}>
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+          backgroundSize: "30px 30px"
+        }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-ghee dark:from-slate-900/50 via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+          <span className="text-[200px] md:text-[300px]">{categoryEmoji}</span>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-30 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="relative z-20 h-full flex flex-col justify-end max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="flex flex-wrap gap-2 mb-4">
-            <span className="px-3 py-1 bg-red text-white text-xs font-semibold rounded-full">
-              {blog.category}
+            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full flex items-center gap-1">
+              <span>{categoryEmoji}</span>
+              <span>{blog.category}</span>
             </span>
             <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs rounded-full flex items-center gap-1">
               <Clock className="w-3 h-3" />
@@ -126,14 +159,18 @@ export default function BlogDetailsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <User className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
+                {blog.author.charAt(0)}
               </div>
               <span>{blog.author}</span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              <span>{blog.date}</span>
+              <span>{formatDate(blog.date)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Eye className="w-4 h-4" />
+              <span>{formatViews(blog.views)} views</span>
             </div>
           </div>
         </div>
@@ -153,7 +190,7 @@ export default function BlogDetailsPage() {
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? "fill-red text-red" : ""}`} />
-                <span className="text-sm">{blog.likes}</span>
+                <span className="text-sm">{formatViews(blog.views)}</span>
               </button>
               <button
                 onClick={() => setIsBookmarked(!isBookmarked)}
@@ -164,7 +201,13 @@ export default function BlogDetailsPage() {
                 <Bookmark className="w-4 h-4" />
               </button>
             </div>
-            <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-red/10 transition-colors">
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Link copied!");
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-red/10 transition-colors"
+            >
               <Share2 className="w-4 h-4" />
               <span className="text-sm">Share</span>
             </button>
@@ -184,18 +227,17 @@ export default function BlogDetailsPage() {
           />
 
           {/* Tags */}
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-2 mb-3">
-              <Tag className="w-4 h-4 text-gray-500" />
+          {blog.tags && blog.tags.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex flex-wrap gap-2">
+                {blog.tags.map((tag, i) => (
+                  <span key={i} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {blog.tags.map((tag, i) => (
-                <span key={i} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Author Bio */}
           <div className="mt-8 p-5 bg-gray-50 dark:bg-gray-800 rounded-xl">
