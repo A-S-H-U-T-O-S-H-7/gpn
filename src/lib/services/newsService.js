@@ -12,7 +12,8 @@ import {
   orderBy,
   limit,
   serverTimestamp,
-  increment
+  increment,
+  writeBatch
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
