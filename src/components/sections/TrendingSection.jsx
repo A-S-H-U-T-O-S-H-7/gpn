@@ -134,7 +134,7 @@ export default function TrendingSection() {
 
   return (
     <section className="py-10 bg-ghee dark:bg-slate-900/50">
-      <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className="max-w-8xl mx-auto px-2 sm:px-8 lg:px-10">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">

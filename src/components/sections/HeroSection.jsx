@@ -108,7 +108,7 @@ export default function HeroSection() {
 
   return (
     <section className="py-3 bg-ghee dark:bg-slate-900/60">
-      <div className="max-w-8xl mx-auto px-3 sm:px-5 lg:px-7">
+      <div className="max-w-8xl mx-auto px-3 sm:px-7 lg:px-9">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           {/* ══ LEFT — Hero Carousel ══════════════════════════ */}

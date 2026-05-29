@@ -17,7 +17,6 @@ export const metadata = {
   description: "Video-first digital news platform",
   keywords: "news, live tv, breaking news, global news, world news, politics, technology, sports, entertainment",
   authors: [{ name: "GPN" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   openGraph: {
     title: "GPN - Great Post News",
@@ -31,6 +30,11 @@ export const metadata = {
     title: "GPN - Great Post News",
     description: "Your video-first news platform for breaking news and live updates",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {

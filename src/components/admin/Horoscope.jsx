@@ -42,12 +42,12 @@ export default function HoroscopeManagementPage() {
   const handleFetchFromAPI = async () => {
     const result = await Swal.fire({
       title: "Fetch from API?",
-      text: "This will update all horoscopes from Aztro API. Any manual changes will be overwritten.",
+      text: `This will update all horoscopes for ${selectedDate} from VedicAstro API. Any manual changes for this date will be overwritten.`,
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#ff2b2b",
       cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, fetch from API",
+      confirmButtonText: "Yes, fetch from VedicAstro",
       cancelButtonText: "Cancel",
       background: isDarkMode ? "#1f2937" : "#ffffff",
       color: isDarkMode ? "#ffffff" : "#000000",
@@ -56,9 +56,9 @@ export default function HoroscopeManagementPage() {
     if (result.isConfirmed) {
       setUpdating(true);
       try {
-        const apiResult = await updateAllHoroscopesFromAPI(admin);
+        const apiResult = await updateAllHoroscopesFromAPI(admin, 'moon', selectedDate);
         if (apiResult.success) {
-          toast.success("Horoscopes updated from API successfully!");
+        toast.success("Horoscopes updated from VedicAstro successfully!");
           fetchHoroscopes();
         } else {
           toast.error(apiResult.error || "Failed to fetch from API");
@@ -86,7 +86,7 @@ export default function HoroscopeManagementPage() {
   const handleSaveEdit = async (sign) => {
     setUpdating(true);
     try {
-      const result = await updateHoroscopeManually(sign, editData, admin);
+        const result = await updateHoroscopeManually(sign, editData, admin, selectedDate);
       if (result.success) {
         toast.success(`${sign} horoscope updated successfully!`);
         setEditingSign(null);
@@ -388,7 +388,7 @@ export default function HoroscopeManagementPage() {
       {!loading && (
         <div className="mt-6 text-center">
           <p className={`text-xs ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
-            Click "Fetch from API" to get today's horoscopes from Aztro API
+            Click "Fetch from API" to get horoscopes from VedicAstro API
           </p>
         </div>
       )}

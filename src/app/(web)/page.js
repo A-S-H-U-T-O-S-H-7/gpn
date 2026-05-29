@@ -10,7 +10,7 @@ import TrendingSection from "@/components/sections/TrendingSection";
 
 export default function HomePage() {
   return (
-    <div className="max-w-8xl mx-auto px-2 md:px-4 py-8">
+    <div className="max-w-8xl mx-auto  py-8">
       <HeroSection/>
       <TrendingSection/>
       <CategorySection/>

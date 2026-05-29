@@ -69,7 +69,6 @@ export const logActivity = async ({
     };
     
     await addDoc(collection(db, ACTIVITY_LOGS_COLLECTION), activityData);
-    console.log(`📝 Activity logged: ${action} - ${entityType} - ${entityTitle}`);
     return { success: true };
   } catch (error) {
     console.error('Error logging activity:', error);
