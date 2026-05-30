@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube, FaLinkedinIn } from "react-icons/fa";
 import { getFooterData } from "@/lib/services/footerService";
 
@@ -137,6 +137,13 @@ export default function Footer() {
                     {contact.phone2}
                   </a>
                 )}
+
+                {contact?.address && (
+      <div className="flex items-start gap-3 text-gray-400 text-sm">
+        <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+        <span className="leading-relaxed">{contact.address}</span>
+      </div>
+    )}
               </div>
             </div>
           </div>

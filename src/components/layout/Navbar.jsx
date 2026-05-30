@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Menu, X, Search, Sun, Moon, User, LogOut, Bell, BellOff, UserCircle } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useState, useEffect, useRef } from "react";
+import { Menu, X, Search, Sun, Moon, LogOut, Bell, UserCircle, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useAuthStore from "@/lib/stores/useAuthStore";
 import { getSubscriptionStatus } from "@/lib/services/subscriptionService";
+import { getActiveCategories } from "@/lib/services/categoryService";
 import SubscribeModal from "../subsription/SubscribeModal";
 import useThemeStore from "@/lib/stores/useThemeStore";
 
@@ -15,15 +15,37 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { isDarkMode } = useThemeStore();
+  const { isDarkMode, toggleTheme } = useThemeStore();
   const router = useRouter();
+  const dropdownTimeout = useRef(null);
+  const categoryRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Fetch categories from Firebase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const result = await getActiveCategories();
+        if (result.success) {
+          setCategories(result.categories);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
   }, []);
 
   // Check subscription status when user is authenticated
@@ -40,6 +62,29 @@ export default function Navbar() {
     };
     checkSubscription();
   }, [isAuthenticated, user]);
+
+  // Handle category dropdown hover with delay
+  const handleCategoryMouseEnter = () => {
+    if (dropdownTimeout.current) {
+      clearTimeout(dropdownTimeout.current);
+    }
+    setIsCategoriesOpen(true);
+  };
+
+  const handleCategoryMouseLeave = () => {
+    dropdownTimeout.current = setTimeout(() => {
+      setIsCategoriesOpen(false);
+    }, 200);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeout.current) {
+        clearTimeout(dropdownTimeout.current);
+      }
+    };
+  }, []);
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -78,10 +123,10 @@ export default function Navbar() {
 
     return (
       <button
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onClick={toggleTheme}
         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
       >
-        {theme === "dark" ? (
+        {isDarkMode ? (
           <Sun className="w-5 h-5 text-gray-300" />
         ) : (
           <Moon className="w-5 h-5 text-gray-700" />
@@ -126,6 +171,50 @@ export default function Navbar() {
                   )}
                 </a>
               ))}
+
+              {/* Categories Dropdown */}
+              <div
+                ref={categoryRef}
+                className="relative"
+                onMouseEnter={handleCategoryMouseEnter}
+                onMouseLeave={handleCategoryMouseLeave}
+              >
+                <button
+                  className="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-red dark:hover:text-red transition-colors font-medium group"
+                >
+                  Categories
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCategoriesOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isCategoriesOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-slide-down">
+                    <div className="py-2">
+                      {loadingCategories ? (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          Loading...
+                        </div>
+                      ) : categories.length > 0 ? (
+                        categories.map((category) => (
+                          <Link
+                            key={category.id}
+                            href={`/category/${category.slug}`}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red transition-colors group"
+                            onClick={() => setIsCategoriesOpen(false)}
+                          >
+                            <span className="text-lg">{category.iconEmoji || "📰"}</span>
+                            <span className="font-medium">{category.name}</span>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          No categories found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -169,16 +258,8 @@ export default function Navbar() {
                 </button>
               )}
 
-              {/* Login/Logout Button */}
-              {isAuthenticated ? (
-                <button
-                  onClick={handleLogout}
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-400"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="text-sm font-medium">Logout</span>
-                </button>
-              ) : (
+              {/* Login Button */}
+              {!isAuthenticated && (
                 <Link
                   href="/login"
                   className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
@@ -188,23 +269,51 @@ export default function Navbar() {
                 </Link>
               )}
 
-              {/* User Avatar (only when logged in) - Optional, shows name */}
+              {/* User account dropdown */}
               {isAuthenticated && (
-                <button
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                <div
+                  className="relative hidden sm:block"
+                  onMouseEnter={() => setIsProfileOpen(true)}
+                  onMouseLeave={() => setIsProfileOpen(false)}
                 >
-                  <div className="w-7 h-7 bg-gradient-to-r from-red-600 to-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">
-                      {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="w-7 h-7 bg-gradient-to-r from-red-600 to-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">
+                        {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {user?.name?.split(" ")[0] || "Account"}
                     </span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {user?.name?.split(" ")[0] || "Account"}
-                  </span>
-                </button>
-              )}
+                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`} />
+                  </button>
 
+                  {isProfileOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-52 rounded-xl shadow-xl border z-50 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden animate-slide-down">
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                          {user?.name || "User"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                          {user?.email}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -244,7 +353,36 @@ export default function Navbar() {
                     )}
                   </a>
                 ))}
-                <div className="flex gap-3 pt-2">
+
+                {/* Categories Section in Mobile Menu */}
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                    Categories
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {loadingCategories ? (
+                      <div className="col-span-2 text-center py-2 text-sm text-gray-500">Loading...</div>
+                    ) : categories.length > 0 ? (
+                      categories.map((category) => (
+                        <Link
+                          key={category.id}
+                          href={`/category/${category.slug}`}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <span className="text-base">{category.iconEmoji || "📰"}</span>
+                          <span>{category.name}</span>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center py-2 text-sm text-gray-500">
+                        No categories found
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
                   {isAuthenticated && isSubscribed ? (
                     <button
                       disabled
@@ -284,36 +422,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Profile Dropdown */}
-      {isProfileOpen && isAuthenticated && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsProfileOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-56 rounded-xl shadow-xl border z-50 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700" style={{ top: "60px", right: "20px" }}>
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {user?.name || "User"}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {user?.email}
-              </p>
-            </div>
-            <div className="py-2">
-              <Link
-                href="/profile"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                onClick={() => setIsProfileOpen(false)}
-              >
-                <User className="w-4 h-4" />
-                My Profile
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* Subscribe Modal */}
       <SubscribeModal
         isOpen={isSubscribeModalOpen}
@@ -321,6 +429,23 @@ export default function Navbar() {
         onSuccess={handleSubscribeSuccess}
         isDark={isDarkMode}
       />
+
+      {/* Add animation CSS for dropdown */}
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-down {
+          animation: slideDown 0.2s ease forwards;
+        }
+      `}</style>
     </>
   );
 }

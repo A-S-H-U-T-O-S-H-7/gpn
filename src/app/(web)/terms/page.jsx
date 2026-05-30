@@ -3,7 +3,10 @@
 import {
   FileText, Users, Scale, AlertTriangle, Ban,
   Copyright, Gavel, RefreshCw, Mail, Globe, CheckCircle,
+  ArrowLeft,
 } from "lucide-react";
+import {motion} from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const sections = [
   {
@@ -98,7 +101,7 @@ const sections = [
         </div>
         <p>
           For licensing or syndication enquiries, please contact{" "}
-          <a href="mailto:legal@gpn.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium">legal@gpn.com</a>.
+          <a href="mailto: info@greatpostnews.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium"> info@greatpostnews.com</a>.
         </p>
       </div>
     ),
@@ -197,11 +200,11 @@ const sections = [
           These Terms of Use are governed by and construed in accordance with the laws of India,
           without regard to conflict of law principles. Any disputes arising out of or in connection
           with these Terms shall be subject to the exclusive jurisdiction of the courts located in
-          New Delhi, India.
+          C-316 B&C, Sector 10, Noida. Uttar Pradesh 201301, India.
         </p>
         <p>
           We encourage users to resolve disputes informally first by contacting us at{" "}
-          <a href="mailto:legal@gpn.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium">legal@gpn.com</a>.
+          <a href="mailto: info@greatpostnews.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium"> info@greatpostnews.com</a>.
           We will make reasonable efforts to address your concern within 15 business days.
         </p>
       </div>
@@ -232,11 +235,11 @@ const sections = [
           <p className="font-semibold text-slate-800 dark:text-slate-200">Great Post News — Legal Team</p>
           <p className="flex items-center gap-2">
             <Mail className="w-3.5 h-3.5 text-teal-500" />
-            <a href="mailto:legal@gpn.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium">legal@gpn.com</a>
+            <a href="mailto: info@greatpostnews.com" className="text-teal-600 dark:text-teal-400 hover:underline font-medium"> info@greatpostnews.com</a>
           </p>
           <p className="flex items-center gap-2">
             <Globe className="w-3.5 h-3.5 text-teal-500" />
-            New Delhi, India — 110001
+            C-316 B&C, Sector 10, Noida. Uttar Pradesh 201301, India
           </p>
         </div>
       </div>
@@ -245,12 +248,30 @@ const sections = [
 ];
 
 export default function TermsPage() {
-  return (
+      const router = useRouter();
+    return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-violet-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-4 pb-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="fixed top-0 right-0 w-96 h-96 bg-teal-300/20 dark:bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-80 h-80 bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto">
+
+        {/* ── Back Button ── */}
+        <motion.div
+         initial={{ opacity: 0, x: -20 }}
+         animate={{ opacity: 1, x: 0 }}
+         transition={{ duration: 0.3 }}
+         className="mb-6 cursor-pointer"
+        >
+       <button
+        onClick={() => router.back()}
+        className="group cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+        >
+        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+        <span className="text-sm font-medium">Back</span>
+        </button>
+        </motion.div>
+
         {/* Header */}
         <div className="text-center mb-12">
         <div className="flex items-center justify-center gap-4 ">

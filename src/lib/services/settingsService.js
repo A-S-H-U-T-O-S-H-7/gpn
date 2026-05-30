@@ -3,78 +3,86 @@ import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firest
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
 
 const SETTINGS_COLLECTION = 'settings';
+const SETTINGS_DOC_ID = 'site_settings';
 
-// Default settings
-const defaultSettings = {
+// Default settings structure
+const DEFAULT_SETTINGS = {
   general: {
     siteName: 'Great Post News',
-    siteTagline: 'Your trusted source for breaking news',
-    siteEmail: 'admin@gpn.com',
+    siteTagline: 'Your Trusted News Source',
+    siteEmail: 'info@gpn.com',
     contactEmail: 'contact@gpn.com',
     timezone: 'Asia/Kolkata',
     dateFormat: 'MMM DD, YYYY',
+    siteLogo: '/logo.webp',
   },
   seo: {
-    metaTitle: 'GPN - Great Post News | Breaking News, Live TV & Latest Updates',
-    metaDescription: 'Your video-first news platform for breaking news, live TV streaming, trending stories, and exclusive coverage from around the world.',
-    metaKeywords: 'news, live tv, breaking news, global news, world news, politics, technology, sports, entertainment',
+    metaTitle: 'Great Post News - Latest News, Breaking News, India News',
+    metaDescription: 'Get latest news, breaking news, live updates on politics, business, sports, entertainment from India and around the world.',
+    metaKeywords: 'news, breaking news, India news, world news, politics, business, sports',
     googleAnalyticsId: '',
     googleSiteVerification: '',
   },
   social: {
-    facebook: 'https://facebook.com/gpn',
-    twitter: 'https://twitter.com/gpn',
-    instagram: 'https://instagram.com/gpn',
-    youtube: 'https://youtube.com/gpn',
-    linkedin: 'https://linkedin.com/company/gpn',
+    facebook: '',
+    twitter: '',
+    instagram: '',
+    youtube: '',
+    linkedin: '',
   },
-  appearance: {
-    primaryColor: '#ff2b2b',
-    accentColor: '#ff2b2b',
-    darkMode: 'system',
-    fontFamily: 'Inter',
+  contact: {
+    phone1: '',
+    phone2: '',
+    contactEmail: '',
+    address: '',
   },
-  homepage: {
-    heroEnabled: true,
-    trendingCount: 8,
-    latestVideosCount: 20,
-    categoriesToShow: 6,
+  legal: {
+    privacyPolicyUrl: '/privacy-policy',
+    termsOfUseUrl: '/terms',
+    cookiePolicyUrl: '/cookie-policy',
+  },
+  footer: {
+    copyrightText: 'Great Post News. All rights reserved',
+    creditsText: 'Designed by ALL TIME DATA',
+    showAppButtons: false,
+    appStoreUrl: '',
+    playStoreUrl: '',
   },
 };
 
 // Get all settings
 export const getSettings = async () => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
     const settingsSnap = await getDoc(settingsRef);
     
     if (settingsSnap.exists()) {
       return { success: true, settings: settingsSnap.data() };
     } else {
       // Create default settings if not exists
-      await setDoc(settingsRef, defaultSettings);
-      return { success: true, settings: defaultSettings };
+      await setDoc(settingsRef, DEFAULT_SETTINGS);
+      return { success: true, settings: DEFAULT_SETTINGS };
     }
   } catch (error) {
     console.error('Error getting settings:', error);
-    return { success: false, error: error.message, settings: defaultSettings };
+    return { success: false, error: error.message, settings: DEFAULT_SETTINGS };
   }
 };
 
 // Update general settings
-export const updateGeneralSettings = async (data, adminData) => {
+export const updateGeneralSettings = async (generalData, adminData) => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
     await updateDoc(settingsRef, {
-      general: data,
+      general: generalData,
       updatedAt: serverTimestamp(),
-      updatedBy: adminData.id,
+      updatedBy: adminData?.id,
     });
     
     await logActivity({
       action: ActivityActions.UPDATE,
       entityType: ActivityEntityTypes.SETTINGS,
-      entityId: 'general',
+      entityId: SETTINGS_DOC_ID,
       entityTitle: 'General Settings',
       details: 'Updated general settings',
       adminId: adminData.id,
@@ -90,19 +98,19 @@ export const updateGeneralSettings = async (data, adminData) => {
 };
 
 // Update SEO settings
-export const updateSeoSettings = async (data, adminData) => {
+export const updateSeoSettings = async (seoData, adminData) => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
     await updateDoc(settingsRef, {
-      seo: data,
+      seo: seoData,
       updatedAt: serverTimestamp(),
-      updatedBy: adminData.id,
+      updatedBy: adminData?.id,
     });
     
     await logActivity({
       action: ActivityActions.UPDATE,
       entityType: ActivityEntityTypes.SETTINGS,
-      entityId: 'seo',
+      entityId: SETTINGS_DOC_ID,
       entityTitle: 'SEO Settings',
       details: 'Updated SEO settings',
       adminId: adminData.id,
@@ -118,19 +126,19 @@ export const updateSeoSettings = async (data, adminData) => {
 };
 
 // Update social links
-export const updateSocialLinks = async (data, adminData) => {
+export const updateSocialLinks = async (socialData, adminData) => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
     await updateDoc(settingsRef, {
-      social: data,
+      social: socialData,
       updatedAt: serverTimestamp(),
-      updatedBy: adminData.id,
+      updatedBy: adminData?.id,
     });
     
     await logActivity({
       action: ActivityActions.UPDATE,
       entityType: ActivityEntityTypes.SETTINGS,
-      entityId: 'social',
+      entityId: SETTINGS_DOC_ID,
       entityTitle: 'Social Links',
       details: 'Updated social media links',
       adminId: adminData.id,
@@ -145,22 +153,22 @@ export const updateSocialLinks = async (data, adminData) => {
   }
 };
 
-// Update appearance settings
-export const updateAppearanceSettings = async (data, adminData) => {
+// Update contact settings
+export const updateContactSettings = async (contactData, adminData) => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
     await updateDoc(settingsRef, {
-      appearance: data,
+      contact: contactData,
       updatedAt: serverTimestamp(),
-      updatedBy: adminData.id,
+      updatedBy: adminData?.id,
     });
     
     await logActivity({
       action: ActivityActions.UPDATE,
       entityType: ActivityEntityTypes.SETTINGS,
-      entityId: 'appearance',
-      entityTitle: 'Appearance Settings',
-      details: 'Updated appearance settings',
+      entityId: SETTINGS_DOC_ID,
+      entityTitle: 'Contact Settings',
+      details: 'Updated contact information',
       adminId: adminData.id,
       adminName: adminData.name,
       adminRole: adminData.role,
@@ -168,35 +176,46 @@ export const updateAppearanceSettings = async (data, adminData) => {
     
     return { success: true };
   } catch (error) {
-    console.error('Error updating appearance settings:', error);
+    console.error('Error updating contact settings:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Update homepage settings
-export const updateHomepageSettings = async (data, adminData) => {
+// Get public settings for frontend
+export const getPublicSettings = async () => {
   try {
-    const settingsRef = doc(db, SETTINGS_COLLECTION, 'main');
-    await updateDoc(settingsRef, {
-      homepage: data,
-      updatedAt: serverTimestamp(),
-      updatedBy: adminData.id,
-    });
+    const settingsRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+    const settingsSnap = await getDoc(settingsRef);
     
-    await logActivity({
-      action: ActivityActions.UPDATE,
-      entityType: ActivityEntityTypes.SETTINGS,
-      entityId: 'homepage',
-      entityTitle: 'Homepage Settings',
-      details: 'Updated homepage settings',
-      adminId: adminData.id,
-      adminName: adminData.name,
-      adminRole: adminData.role,
-    });
-    
-    return { success: true };
+    if (settingsSnap.exists()) {
+      const data = settingsSnap.data();
+      return {
+        success: true,
+        data: {
+          general: data.general,
+          social: data.social,
+          contact: data.contact,
+          legal: data.legal,
+          footer: data.footer,
+        }
+      };
+    }
+    return { success: true, data: DEFAULT_SETTINGS };
   } catch (error) {
-    console.error('Error updating homepage settings:', error);
+    console.error('Error getting public settings:', error);
     return { success: false, error: error.message };
   }
+};
+
+// Get contact info for Contact/Advertise pages
+export const getContactInfo = async () => {
+  const result = await getPublicSettings();
+  if (result.success) {
+    return {
+      success: true,
+      contact: result.data.contact,
+      social: result.data.social,
+    };
+  }
+  return { success: false, contact: null, social: null };
 };

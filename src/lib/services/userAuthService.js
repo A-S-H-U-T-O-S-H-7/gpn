@@ -8,11 +8,20 @@ import {
   signOut,
   sendPasswordResetEmail,
   signInWithPopup,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const USERS_COLLECTION = 'users';
+
+const waitForAuthUser = () =>
+  new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
 
 // Build user profile
 const buildUserProfile = (user, name = null) => ({
@@ -165,11 +174,17 @@ export const userAuthService = {
   // Verify session
   verifySession: async (sessionToken) => {
     try {
-      const currentUser = auth.currentUser;
+      if (!sessionToken) {
+        return { success: false };
+      }
+
+      const currentUser = auth.currentUser || await waitForAuthUser();
       
       if (!currentUser) {
         return { success: false };
       }
+
+      await currentUser.getIdToken();
       
       const userRef = doc(db, USERS_COLLECTION, currentUser.uid);
       const userDoc = await getDoc(userRef);

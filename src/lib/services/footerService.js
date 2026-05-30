@@ -1,20 +1,19 @@
-import { getSettings } from './settingsService';
+import { getPublicSettings } from './settingsService';
 import { getActiveCategories } from './categoryService';
 
-// Get all footer data
 export const getFooterData = async () => {
   try {
-    const settingsResult = await getSettings();
+    const settingsResult = await getPublicSettings();
     const categoriesResult = await getActiveCategories();
     
     return {
       success: true,
       data: {
-        general: settingsResult.success ? settingsResult.settings.general : null,
-        contact: settingsResult.success ? settingsResult.settings.contact : null,
-        social: settingsResult.success ? settingsResult.settings.social : null,
-        legal: settingsResult.success ? settingsResult.settings.legal : null,
-        footer: settingsResult.success ? settingsResult.settings.footer : null,
+        general: settingsResult.success ? settingsResult.data.general : null,
+        contact: settingsResult.success ? settingsResult.data.contact : null,
+        social: settingsResult.success ? settingsResult.data.social : null,
+        legal: settingsResult.success ? settingsResult.data.legal : null,
+        footer: settingsResult.success ? settingsResult.data.footer : null,
         categories: categoriesResult.success ? categoriesResult.categories : [],
       }
     };

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark, User, Tag } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getPublishedBlogBySlug, incrementBlogView } from "@/lib/services/blogService";
 
@@ -58,6 +58,7 @@ export default function BlogDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -118,22 +119,32 @@ export default function BlogDetailsPage() {
 
   const categoryEmoji = getCategoryEmoji(blog.category);
   const gradient = getGradient(blog.category);
+  const imageUrl = blog.coverImage || blog.image;
+  const hasImage = Boolean(imageUrl) && !imgError;
 
   return (
     <div className="min-h-screen bg-ghee dark:bg-slate-900/50 pb-16">
       
       {/* Hero Section */}
-      <div className={`relative h-[50vh] md:h-[55vh] overflow-hidden bg-gradient-to-br ${gradient}`}>
+      <div className={`relative h-[50vh] min-h-[360px] md:h-[55vh] overflow-hidden bg-gradient-to-br ${gradient}`}>
+        {hasImage && (
+          <img
+            src={imageUrl}
+            alt={blog.title}
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            onError={() => setImgError(true)}
+          />
+        )}
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
           backgroundSize: "30px 30px"
         }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-ghee dark:from-slate-900/50 via-transparent to-transparent z-10" />
-        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/15 z-10" />
+        <div className={`absolute inset-0 flex items-center justify-center ${hasImage ? "opacity-0" : "opacity-10"}`}>
           <span className="text-[200px] md:text-[300px]">{categoryEmoji}</span>
         </div>
 
-        <div className="relative z-20 h-full flex flex-col justify-end max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="relative z-20 h-full flex flex-col justify-end max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="flex flex-wrap gap-2 mb-4">
             <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full flex items-center gap-1">
               <span>{categoryEmoji}</span>
@@ -177,7 +188,7 @@ export default function BlogDetailsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 md:p-10">
           
           {/* Action Buttons */}

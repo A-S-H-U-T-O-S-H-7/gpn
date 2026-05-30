@@ -144,10 +144,10 @@ export const getActivityLogs = async (page = 1, filters = {}) => {
 };
 
 // Get recent activity logs (for dashboard)
-export const getRecentActivities = async (limit = 10) => {
+export const getRecentActivities = async (maxItems = 10) => {
   try {
     const logsRef = collection(db, ACTIVITY_LOGS_COLLECTION);
-    const q = query(logsRef, orderBy('timestamp', 'desc'), limit(limit));
+    const q = query(logsRef, orderBy('timestamp', 'desc'), limit(maxItems));
     const snapshot = await getDocs(q);
     
     const logs = [];

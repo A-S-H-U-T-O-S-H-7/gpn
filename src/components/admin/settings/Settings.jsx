@@ -6,17 +6,23 @@ import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import useThemeStore from "@/lib/stores/useThemeStore";
 import useAdminAuthStore from "@/lib/stores/useAdminAuthStore";
-import GeneralSettings from "./GeneralSettings";
-import SeoSettings from "./SeoSettings";
-import SocialLinks from "./SocialLinks";
-import AppearanceSettings from "./AppearanceSettings";
-import { getSettings, updateGeneralSettings, updateSeoSettings, updateSocialLinks, updateAppearanceSettings } from "@/lib/services/settingsService";
+import GeneralSettings from "@/components/admin/settings/GeneralSettings";
+import SeoSettings from "@/components/admin/settings/SeoSettings";
+import SocialLinks from "@/components/admin/settings/SocialLinks";
+import ContactSettings from "@/components/admin/settings/ContactSettings";
+import { 
+  getSettings, 
+  updateGeneralSettings, 
+  updateSeoSettings, 
+  updateSocialLinks, 
+  updateContactSettings 
+} from "@/lib/services/settingsService";
 
 const tabs = [
   { id: "general", name: "General", icon: "⚙️" },
   { id: "seo", name: "SEO", icon: "🔍" },
   { id: "social", name: "Social Links", icon: "📱" },
-  { id: "appearance", name: "Appearance", icon: "🎨" },
+  { id: "contact", name: "Contact", icon: "📞" }, // NEW TAB
 ];
 
 export default function SettingsPage() {
@@ -78,13 +84,14 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpdateAppearance = async (data) => {
-    const result = await updateAppearanceSettings(data, admin);
+  // NEW: Handle contact settings update
+  const handleUpdateContact = async (data) => {
+    const result = await updateContactSettings(data, admin);
     if (result.success) {
-      toast.success("Appearance settings updated");
+      toast.success("Contact information updated");
       fetchSettings();
     } else {
-      toast.error(result.error || "Failed to update settings");
+      toast.error(result.error || "Failed to update contact info");
     }
   };
 
@@ -165,10 +172,11 @@ export default function SettingsPage() {
           />
         )}
         
-        {activeTab === "appearance" && settings?.appearance && (
-          <AppearanceSettings
-            settings={settings.appearance}
-            onUpdate={handleUpdateAppearance}
+        {/* NEW: Contact Tab */}
+        {activeTab === "contact" && settings?.contact && (
+          <ContactSettings
+            settings={settings.contact}
+            onUpdate={handleUpdateContact}
             isDark={isDarkMode}
           />
         )}

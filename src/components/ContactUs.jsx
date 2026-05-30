@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Phone, MapPin, Send, CheckCircle, User, MessageSquare, Tag } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle, User, MessageSquare, Tag, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { submitContactForm } from "@/lib/services/contactService";
+import { getContactInfo } from "@/lib/services/settingsService";
+import { useRouter } from "next/navigation";
 
 export default function ContactPage() {
+  const [contactInfo, setContactInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,6 +20,20 @@ export default function ContactPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const router = useRouter();
+  
+
+  // Fetch contact info from settings
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      const result = await getContactInfo();
+      if (result.success) {
+        setContactInfo(result.contact);
+      }
+      setLoading(false);
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,32 +69,42 @@ export default function ContactPage() {
     setIsSubmitting(false);
   };
 
+  // Dynamic contact items based on fetched data
   const contactItems = [
     {
       icon: <Phone className="w-5 h-5" />,
       label: "Phone",
-      value: "+91 1234567890",
-      href: "tel:+911234567890",
+      value: contactInfo?.phone1 || "+91 1234567890",
+      href: `tel:${(contactInfo?.phone1 || "1234567890").replace(/\s/g, '')}`,
       iconBg: "bg-teal-100 dark:bg-teal-900/40",
       iconColor: "text-teal-600 dark:text-teal-400",
     },
     {
       icon: <Mail className="w-5 h-5" />,
       label: "Email",
-      value: "info@gpn.com",
-      href: "mailto:info@gpn.com",
+      value: contactInfo?.contactEmail || "info@gpn.com",
+      href: `mailto:${contactInfo?.contactEmail || "info@gpn.com"}`,
       iconBg: "bg-violet-100 dark:bg-violet-900/40",
       iconColor: "text-violet-600 dark:text-violet-400",
     },
     {
       icon: <MapPin className="w-5 h-5" />,
       label: "Address",
-      value: "Great Post News, New Delhi, India — 110001",
+      value: contactInfo?.address || "Great Post News, New Delhi, India - 110001",
       href: null,
       iconBg: "bg-sky-100 dark:bg-sky-900/40",
       iconColor: "text-sky-600 dark:text-sky-400",
     },
   ];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-violet-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-4 pb-14 px-4 md:px-6 transition-colors duration-300">
@@ -86,6 +114,22 @@ export default function ContactPage() {
       <div className="fixed bottom-0 left-0 w-80 h-80 bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto">
+
+        {/* ── Back Button ── */}
+                <motion.div
+                 initial={{ opacity: 0, x: -20 }}
+                 animate={{ opacity: 1, x: 0 }}
+                 transition={{ duration: 0.3 }}
+                 className="mb-6 cursor-pointer"
+                >
+               <button
+                onClick={() => router.back()}
+                className="group cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="text-sm font-medium">Back</span>
+                </button>
+                </motion.div>
 
         {/* ── Header ── */}
         <motion.div
@@ -155,8 +199,20 @@ export default function ContactPage() {
                 ))}
               </div>
 
-              {/* Decorative gradient strip at bottom */}
-              <div className="mt-10 h-1.5 w-full rounded-full bg-gradient-to-r from-teal-400 via-violet-400 to-sky-400 opacity-60" />
+              {/* Show second phone if exists */}
+              {contactInfo?.phone2 && (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Alternate Number</p>
+                  <a
+                    href={`tel:${contactInfo.phone2.replace(/\s/g, '')}`}
+                    className="text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-teal-600"
+                  >
+                    {contactInfo.phone2}
+                  </a>
+                </div>
+              )}
+
+              <div className="mt-6 h-1.5 w-full rounded-full bg-gradient-to-r from-teal-400 via-violet-400 to-sky-400 opacity-60" />
             </div>
           </motion.div>
 

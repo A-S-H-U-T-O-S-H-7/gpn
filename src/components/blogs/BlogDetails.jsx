@@ -3,179 +3,51 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark, User, Tag } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowLeft, Calendar, Clock, Eye, Heart, Share2, Bookmark, Tag,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import { getPublishedBlogBySlug, incrementBlogView } from "@/lib/services/blogService";
 
-// Mock blog data - In production, fetch from Firebase
-const mockBlogs = {
-  "future-of-digital-news-2025": {
-    id: 1,
-    slug: "future-of-digital-news-2025",
-    title: "The Future of Digital News: What to Expect in 2025",
-    description: "Explore how AI, video content, and personalized feeds are transforming the way we consume news.",
-    content: `
-      <p>The digital news landscape is evolving faster than ever before. As we look ahead to 2025, several key trends are shaping the future of how we consume and interact with news content.</p>
-      
-      <h2>The Rise of AI-Powered Personalization</h2>
-      <p>Artificial intelligence is revolutionizing news curation. Algorithms are becoming sophisticated enough to understand individual preferences while maintaining editorial standards and avoiding echo chambers.</p>
-      
-      <h2>Video-First Approach</h2>
-      <p>Short-form video content is dominating user engagement. News platforms are investing heavily in vertical video formats optimized for mobile consumption.</p>
-      
-      <h2>Trust and Verification</h2>
-      <p>With misinformation on the rise, news platforms are implementing robust verification systems and blockchain technology to ensure content authenticity.</p>
-      
-      <h2>Interactive Storytelling</h2>
-      <p>Immersive experiences through AR/VR and interactive graphics are becoming mainstream, allowing readers to engage with stories in new ways.</p>
-      
-      <p>The future of digital news is exciting, challenging, and full of opportunities for those who adapt quickly to changing consumer behaviors.</p>
-    `,
-    category: "Technology",
-    date: "May 15, 2024",
-    readTime: 5,
-    views: "12.5K",
-    likes: "892",
-    author: "Rajesh Kumar",
-    authorBio: "Senior Technology Journalist with 10+ years of experience covering digital trends and innovations.",
-    tags: ["Digital News", "AI", "Future Trends"],
-  },
-  "how-to-build-news-platform": {
-    id: 2,
-    slug: "how-to-build-news-platform",
-    title: "How to Build a Modern News Platform from Scratch",
-    description: "Complete guide to building a scalable, video-first news platform with Next.js and Firebase.",
-    content: `<p>Building a modern news platform requires careful planning and the right technology stack. This comprehensive guide will walk you through every step of the process.</p>
-    <h2>Choosing the Right Tech Stack</h2>
-    <p>Next.js with App Router provides the perfect foundation for a news platform. Its server-side rendering capabilities ensure fast load times and excellent SEO performance.</p>
-    <h2>Database Design</h2>
-    <p>Firebase offers real-time capabilities that are essential for breaking news. Firestore provides a scalable NoSQL database perfect for content management.</p>
-    <h2>Video Integration</h2>
-    <p>YouTube API integration allows seamless video embedding. Live streaming capabilities can be added using YouTube Live or custom RTMP solutions.</p>
-    <h2>CMS for Editors</h2>
-    <p>A custom admin dashboard enables content creators to publish, edit, and manage articles efficiently with role-based access control.</p>`,
-    category: "Development",
-    date: "May 12, 2024",
-    readTime: 8,
-    views: "8.3K",
-    likes: "1.2K",
-    author: "Priya Sharma",
-    authorBio: "Full-stack developer and tech writer specializing in modern web architectures.",
-    tags: ["Next.js", "Firebase", "Web Development"],
-  },
-  "journalism-ethics-ai-era": {
-    id: 3,
-    slug: "journalism-ethics-ai-era",
-    title: "Journalism Ethics in the Age of AI",
-    description: "Understanding the importance of ethical journalism when using AI tools for news generation.",
-    content: `<p>As AI tools become more prevalent in newsrooms, journalists must navigate new ethical challenges while maintaining traditional standards of accuracy and fairness.</p>
-    <h2>Transparency in AI Usage</h2>
-    <p>News organizations should disclose when AI tools are used in content creation. Readers deserve to know how their news is being produced.</p>
-    <h2>Avoiding Bias</h2>
-    <p>AI models can perpetuate existing biases. Journalists must review AI-generated content carefully to ensure balanced reporting.</p>
-    <h2>Fact-Checking Automation</h2>
-    <p>While AI can assist with fact-checking, human verification remains essential for sensitive topics and breaking news.</p>`,
-    category: "Opinion",
-    date: "May 10, 2024",
-    readTime: 6,
-    views: "6.7K",
-    likes: "567",
-    author: "Amit Verma",
-    authorBio: "Media ethics researcher and journalist with a focus on technology's impact on news.",
-    tags: ["AI Ethics", "Journalism", "Media"],
-  },
-  "video-content-strategy-news": {
-    id: 4,
-    slug: "video-content-strategy-news",
-    title: "Why Video Content is Dominating News Platforms",
-    description: "Analyzing the shift from text-based to video-first news consumption and how to adapt.",
-    content: `<p>Video content has become the primary format for news consumption, especially among younger audiences. Understanding this shift is crucial for modern news organizations.</p>
-    <h2>The Rise of Short-Form Video</h2>
-    <p>Platforms like TikTok and Instagram Reels have changed how people consume news. Bite-sized, engaging video clips are now the norm.</p>
-    <h2>Live Streaming Growth</h2>
-    <p>Live video creates a sense of urgency and authenticity that pre-recorded content cannot match. Breaking news coverage increasingly relies on live streams.</p>
-    <h2>Production Strategies</h2>
-    <p>Newsrooms are adapting by investing in vertical video production, mobile journalism tools, and faster editing workflows.</p>`,
-    category: "Strategy",
-    date: "May 8, 2024",
-    readTime: 4,
-    views: "15.2K",
-    likes: "2.1K",
-    author: "Neha Gupta",
-    authorBio: "Digital media strategist helping news organizations transition to video-first approaches.",
-    tags: ["Video Marketing", "Digital Strategy", "News Media"],
-  },
-  "seo-optimization-news-sites": {
-    id: 5,
-    slug: "seo-optimization-news-sites",
-    title: "SEO Optimization for News Websites: Best Practices 2024",
-    description: "Learn the latest SEO techniques to improve your news site's visibility and ranking.",
-    content: `<p>News websites face unique SEO challenges due to time-sensitive content and high competition. This guide covers the latest best practices.</p>
-    <h2>Core Web Vitals</h2>
-    <p>Google prioritizes fast-loading pages. Optimize images, leverage caching, and minimize JavaScript to improve scores.</p>
-    <h2>Schema Markup</h2>
-    <p>Implement Article and NewsArticle schema to help search engines understand your content and display rich snippets.</p>
-    <h2>Breaking News SEO</h2>
-    <p>For time-sensitive stories, publish quickly, use clear headlines, and leverage Google News Publisher Center.</p>`,
-    category: "SEO",
-    date: "May 5, 2024",
-    readTime: 7,
-    views: "4.9K",
-    likes: "445",
-    author: "Vikram Singh",
-    authorBio: "SEO specialist focused on news and publishing industry optimization strategies.",
-    tags: ["SEO", "Google News", "Search Rankings"],
-  },
-  "mobile-first-news-design": {
-    id: 6,
-    slug: "mobile-first-news-design",
-    title: "Mobile-First Design: Creating News Experiences for Smartphones",
-    description: "Design principles and patterns for building exceptional mobile news experiences.",
-    content: `<p>With over 60% of news consumption happening on mobile devices, mobile-first design is no longer optional—it's essential.</p>
-    <h2>Touch-Friendly Interfaces</h2>
-    <p>Buttons should be large enough for thumbs. Swipe gestures can enhance navigation for article browsing.</p>
-    <h2>Readability Matters</h2>
-    <p>Optimize font sizes for small screens, maintain adequate line spacing, and ensure sufficient contrast for outdoor reading.</p>
-    <h2>Offline Support</h2>
-    <p>Implement service workers to allow users to save articles for offline reading—especially valuable for commuters.</p>`,
-    category: "Design",
-    date: "May 3, 2024",
-    readTime: 6,
-    views: "7.8K",
-    likes: "678",
-    author: "Rajesh Kumar",
-    authorBio: "UI/UX designer specializing in mobile-first news applications.",
-    tags: ["Mobile Design", "UX", "Responsive Design"],
-  },
-};
+/* ─── helpers ─────────────────────────────────────────────────── */
 
-// Get emoji based on category
-const getCategoryEmoji = (category) => {
-  const emojis = {
-    "Technology": "💻",
-    "Development": "🛠️",
-    "Opinion": "💭",
-    "Strategy": "🎯",
-    "SEO": "📈",
-    "Design": "🎨",
-    "Business": "💼",
-    "Default": "📰"
+function formatDate(date) {
+  if (!date) return "N/A";
+  return new Date(date).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+}
+
+function formatViews(views) {
+  if (!views) return "0";
+  if (views >= 1_000_000) return (views / 1_000_000).toFixed(1) + "M";
+  if (views >= 1_000) return (views / 1_000).toFixed(1) + "K";
+  return views.toString();
+}
+
+function getCategoryEmoji(category) {
+  const map = {
+    Technology: "💻", Development: "🛠️", Opinion: "💭",
+    Strategy: "🎯", SEO: "📈", Design: "🎨", Business: "💼",
   };
-  return emojis[category] || emojis.Default;
-};
+  return map[category] ?? "📰";
+}
 
-// Get gradient based on category
-const getGradient = (category) => {
-  const gradients = {
-    "Technology": "from-blue-600 to-cyan-500",
-    "Development": "from-gray-700 to-gray-600",
-    "Opinion": "from-purple-600 to-pink-500",
-    "Strategy": "from-emerald-600 to-teal-500",
-    "SEO": "from-yellow-600 to-amber-500",
-    "Design": "from-rose-600 to-pink-500",
-    "Business": "from-indigo-600 to-blue-500",
-    "Default": "from-red-600 to-orange-500"
+function getGradient(category) {
+  const map = {
+    Technology: "from-blue-700 via-blue-600 to-cyan-500",
+    Development: "from-slate-800 via-slate-700 to-slate-600",
+    Opinion: "from-purple-700 via-purple-600 to-pink-500",
+    Strategy: "from-emerald-700 via-emerald-600 to-teal-500",
+    SEO: "from-amber-600 via-yellow-500 to-amber-400",
+    Design: "from-rose-700 via-rose-600 to-pink-500",
+    Business: "from-indigo-700 via-indigo-600 to-blue-500",
   };
-  return gradients[category] || gradients.Default;
-};
+  return map[category] ?? "from-red-700 via-red-600 to-orange-500";
+}
+
+/* ─── component ───────────────────────────────────────────────── */
 
 export default function BlogDetailsPage() {
   const { slug } = useParams();
@@ -184,38 +56,63 @@ export default function BlogDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const blogData = mockBlogs[slug];
-      if (blogData) {
-        setBlog(blogData);
+    const fetchBlog = async () => {
+      setIsLoading(true);
+      try {
+        const result = await getPublishedBlogBySlug(slug);
+        if (result.success && result.blog) {
+          setBlog(result.blog);
+          const hasViewed = sessionStorage.getItem(`blog_viewed_${result.blog.id}`);
+          if (!hasViewed && result.blog.id) {
+            await incrementBlogView(result.blog.id);
+            sessionStorage.setItem(`blog_viewed_${result.blog.id}`, "true");
+            setBlog((prev) => ({ ...prev, views: (prev?.views || 0) + 1 }));
+          }
+        } else {
+          toast.error("Blog not found");
+          router.push("/blogs");
+        }
+      } catch {
+        toast.error("Failed to load blog");
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, 300);
-  }, [slug]);
+    };
+    if (slug) fetchBlog();
+  }, [slug, router]);
 
+  /* ── loading ── */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-ghee dark:bg-slate-900/50 flex items-center justify-center">
-        <div className="flex space-x-2">
-          <div className="w-3 h-3 bg-red rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-          <div className="w-3 h-3 bg-red rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-          <div className="w-3 h-3 bg-red rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      <div className="min-h-screen bg-[#f8f7f5] dark:bg-slate-950 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          {[0, 150, 300].map((d) => (
+            <div
+              key={d}
+              className="w-3 h-3 bg-red-500 rounded-full animate-bounce"
+              style={{ animationDelay: `${d}ms` }}
+            />
+          ))}
         </div>
       </div>
     );
   }
 
+  /* ── 404 ── */
   if (!blog) {
     return (
-      <div className="min-h-screen bg-ghee dark:bg-slate-900/50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f8f7f5] dark:bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">📄</div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Blog post not found</p>
-          <Link href="/blogs" className="px-6 py-2 bg-red text-white rounded-lg hover:bg-red-600 transition-colors">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3">404</h1>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Blog post not found</p>
+          <Link
+            href="/blogs"
+            className="px-6 py-2.5 bg-red-600 text-white rounded-full text-sm font-semibold hover:bg-red-700 transition-colors"
+          >
             Back to Blogs
           </Link>
         </div>
@@ -225,149 +122,354 @@ export default function BlogDetailsPage() {
 
   const categoryEmoji = getCategoryEmoji(blog.category);
   const gradient = getGradient(blog.category);
+  const hasImage = (blog.coverImage || blog.image) && !imgError;
+  const imageUrl = blog.coverImage || blog.image;
 
   return (
-    <div className="min-h-screen bg-ghee dark:bg-slate-900/50 pb-16">
-      
-      {/* Hero Section with Gradient + Emoji */}
-      <div className={`relative h-[50vh] md:h-[55vh] overflow-hidden bg-gradient-to-br ${gradient}`}>
-        {/* Pattern Overlay */}
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
-          backgroundSize: "30px 30px"
-        }} />
-        
-        {/* Gradient Overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-ghee dark:from-slate-900/50 via-transparent to-transparent z-10" />
-        
-        {/* Large Emoji Background */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-          <span className="text-[200px] md:text-[300px]">{categoryEmoji}</span>
-        </div>
+    <div className="min-h-screen bg-[#f8f7f5] dark:bg-slate-950 pb-20">
 
-        <div className="relative z-20 h-full flex flex-col justify-end max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full flex items-center gap-1">
-              <span>{categoryEmoji}</span>
-              <span>{blog.category}</span>
-            </span>
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs rounded-full flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {blog.readTime} min read
-            </span>
-          </div>
-          <div className="mb-4 flex items-start gap-3">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="mt-1 rounded-full border border-white/40 bg-white/15 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-              {blog.title}
-            </h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
-                {blog.author.charAt(0)}
+      {/* ══════════════════════════════════════════
+          HERO  — full-bleed image OR gradient card
+      ══════════════════════════════════════════ */}
+      <div className="relative w-full">
+
+        {hasImage ? (
+          /* ── IMAGE HERO ── */
+          <div className="relative w-full" style={{ height: "clamp(320px, 55vh, 560px)" }}>
+            {/* Actual blog image, fully visible */}
+            <Image
+              src={imageUrl}
+              alt={blog.title}
+              fill
+              priority
+              fetchPriority="high"
+              loading="eager"
+              sizes="100vw"
+              className="object-cover object-center"
+              onError={() => setImgError(true)}
+            />
+            {/* Bottom scrim so text is always readable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
+
+            {/* Back button — floated top-left */}
+            <div className="absolute top-5 left-4 sm:left-6 lg:left-10 z-20">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                  bg-black/40 border border-white/20 text-white text-sm font-medium
+                  backdrop-blur-md hover:bg-black/60 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+            </div>
+
+            {/* Text anchored to bottom of image */}
+            <div className="absolute inset-x-0 bottom-0 z-10">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pb-8 pt-16">
+                {/* chips */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600/90 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
+                    <span>{categoryEmoji}</span>
+                    <span>{blog.category}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm text-white text-xs rounded-full border border-white/20">
+                    <Clock className="w-3 h-3" />
+                    {blog.readTime} min read
+                  </span>
+                </div>
+                {/* title */}
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-extrabold text-white leading-tight max-w-4xl mb-4 drop-shadow-lg">
+                  {blog.title}
+                </h1>
+                {/* meta */}
+                <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-red-600 border-2 border-white/30 flex items-center justify-center text-white font-bold text-xs">
+                      {blog.author?.charAt(0) ?? "G"}
+                    </div>
+                    <span className="font-medium text-white">{blog.author}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{formatDate(blog.date)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>{formatViews(blog.views)} views</span>
+                  </div>
+                </div>
               </div>
-              <span>{blog.author}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              <span>{blog.date}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              <span>{blog.views} views</span>
             </div>
           </div>
-        </div>
+
+        ) : (
+          /* ── GRADIENT HERO (no image) ── */
+          <div className={`relative overflow-hidden bg-gradient-to-br ${gradient}`}
+               style={{ minHeight: "clamp(280px, 45vh, 480px)" }}>
+            {/* dot pattern */}
+            <div
+              className="absolute inset-0 opacity-[0.13]"
+              style={{
+                backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+                backgroundSize: "26px 26px",
+              }}
+            />
+            {/* big faint emoji watermark */}
+            <div className="absolute inset-0 flex items-center justify-end pr-10 pointer-events-none select-none overflow-hidden">
+              <span
+                className="opacity-[0.08] font-bold leading-none"
+                style={{ fontSize: "clamp(180px, 28vw, 340px)" }}
+                aria-hidden
+              >
+                {categoryEmoji}
+              </span>
+            </div>
+            {/* bottom fade */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#f8f7f5] dark:from-slate-950 to-transparent" />
+
+            {/* Back button */}
+            <div className="absolute top-5 left-4 sm:left-6 lg:left-10 z-20">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                  bg-white/15 border border-white/25 text-white text-sm font-medium
+                  backdrop-blur-sm hover:bg-white/25 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+            </div>
+
+            {/* Text */}
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-14 pb-20">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full">
+                  <span>{categoryEmoji}</span>
+                  <span>{blog.category}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-sm text-white/90 text-xs rounded-full">
+                  <Clock className="w-3 h-3" />
+                  {blog.readTime} min read
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white leading-tight max-w-4xl mb-5">
+                {blog.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 text-white/75 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-white font-bold text-xs">
+                    {blog.author?.charAt(0) ?? "G"}
+                  </div>
+                  <span className="font-medium text-white/90">{blog.author}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{formatDate(blog.date)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>{formatViews(blog.views)} views</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 md:p-10">
-          
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsLiked(!isLiked)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
-                  isLiked ? "bg-red/10 text-red" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red/10"
-                }`}
+      {/* ══════════════════════════════════════════
+          MAIN CONTENT  — max-w-7xl
+      ══════════════════════════════════════════ */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 mt-8 relative z-10">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+          {/* ── Article body ── */}
+          <article className="flex-1 min-w-0">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
+
+              {/* Action bar */}
+              <div className="flex items-center justify-between px-6 md:px-8 py-4 border-b border-gray-100 dark:border-slate-700/60">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsLiked(!isLiked)}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all border ${
+                      isLiked
+                        ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                        : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 hover:text-red-600"
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 transition-colors ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                    <span>{formatViews(blog.views)}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsBookmarked(!isBookmarked)}
+                    title="Bookmark"
+                    className={`p-2 rounded-full border transition-all ${
+                      isBookmarked
+                        ? "bg-red-50 dark:bg-red-900/20 text-red-500 border-red-200 dark:border-red-800"
+                        : "bg-gray-50 dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 hover:text-red-500 hover:bg-red-50 hover:border-red-200"
+                    }`}
+                  >
+                    <Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-red-500" : ""}`} />
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied!");
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 hover:border-red-200 transition-all"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+              </div>
+
+              {/* Article content area */}
+              <div className="px-6 md:px-10 py-8">
+
+                {/* Summary callout */}
+                <div className="mb-8 p-5 bg-red-50 dark:bg-red-900/10 rounded-xl border-l-4 border-red-500">
+                  <p className="text-gray-700 dark:text-gray-300 italic text-[15px] leading-relaxed">
+                    {blog.description}
+                  </p>
+                </div>
+
+                
+
+                {/* HTML content */}
+                <div
+                  className="
+                    prose prose-base md:prose-lg max-w-none
+                    prose-headings:font-extrabold prose-headings:text-gray-900 dark:prose-headings:text-white
+                    prose-h2:text-xl md:prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-3 prose-h2:border-b prose-h2:border-gray-100 dark:prose-h2:border-slate-700/60 prose-h2:pb-2
+                    prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-[1.85]
+                    prose-a:text-red-600 dark:prose-a:text-red-400 prose-a:no-underline hover:prose-a:underline
+                    prose-strong:text-gray-900 dark:prose-strong:text-white
+                    prose-img:rounded-xl prose-img:shadow-md
+                    prose-ul:pl-5 prose-ol:pl-5
+                    prose-li:text-gray-700 dark:prose-li:text-gray-300
+                    prose-blockquote:border-red-500 prose-blockquote:bg-red-50 dark:prose-blockquote:bg-red-900/10 prose-blockquote:rounded-r-lg prose-blockquote:py-1
+                  "
+                  dangerouslySetInnerHTML={{ __html: blog.content }}
+                />
+
+                {/* Tags */}
+                {blog.tags?.length > 0 && (
+                  <div className="mt-10 pt-6 border-t border-gray-100 dark:border-slate-700/60">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                      <Tag className="w-3 h-3" /> Topics
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {blog.tags.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 text-xs rounded-full font-medium hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-200 hover:text-red-600 transition-colors cursor-pointer"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Author bio */}
+                <div className="mt-10 p-5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+                    Written by
+                  </p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold text-lg shadow-sm ring-2 ring-red-100 dark:ring-red-900/30">
+                      {blog.author?.charAt(0) ?? "G"}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-sm">{blog.author}</h4>
+                      <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                        {blog.authorBio}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Back to blogs */}
+            <div className="mt-8 text-center">
+              <Link
+                href="/blogs"
+                className="inline-flex items-center gap-2 px-7 py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-semibold rounded-full transition-all shadow-md hover:shadow-lg"
               >
-                <Heart className={`w-4 h-4 ${isLiked ? "fill-red text-red" : ""}`} />
-                <span className="text-sm">{blog.likes}</span>
-              </button>
-              <button
-                onClick={() => setIsBookmarked(!isBookmarked)}
-                className={`p-1.5 rounded-full transition-colors ${
-                  isBookmarked ? "text-red" : "text-gray-400 hover:text-red"
-                }`}
-              >
-                <Bookmark className="w-4 h-4" />
-              </button>
+                <ArrowLeft className="w-4 h-4" />
+                Back to all blogs
+              </Link>
             </div>
-            <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-red/10 transition-colors">
-              <Share2 className="w-4 h-4" />
-              <span className="text-sm">Share</span>
-            </button>
-          </div>
+          </article>
 
-          {/* Description/Summary */}
-          <div className="mb-8 p-5 bg-red/5 rounded-xl border-l-4 border-red">
-            <p className="text-gray-700 dark:text-gray-300 italic">
-              {blog.description}
-            </p>
-          </div>
+          {/* ── Sidebar (desktop only) ── */}
+          <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
+            <div className="sticky top-6 space-y-4">
 
-          {/* Main Content */}
-          <div 
-            className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-a:text-red prose-strong:text-gray-900 dark:prose-strong:text-white"
-            dangerouslySetInnerHTML={{ __html: blog.content }}
-          />
-
-          {/* Tags */}
-          {blog.tags && blog.tags.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex flex-wrap gap-2">
-                {blog.tags.map((tag, i) => (
-                  <span key={i} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm rounded-full">
-                    #{tag}
-                  </span>
-                ))}
+              {/* Article stats */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+                  Article Info
+                </p>
+                <dl className="space-y-3.5">
+                  {[
+                    { icon: <Calendar className="w-3.5 h-3.5" />, label: "Published", value: formatDate(blog.date) },
+                    { icon: <Clock className="w-3.5 h-3.5" />, label: "Read time", value: `${blog.readTime} min` },
+                    { icon: <Eye className="w-3.5 h-3.5" />, label: "Views", value: formatViews(blog.views) },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex items-center justify-between text-sm">
+                      <dt className="flex items-center gap-1.5 text-gray-400 dark:text-slate-500">
+                        {icon} {label}
+                      </dt>
+                      <dd className="font-semibold text-gray-800 dark:text-gray-200">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
+
+              {/* Category pill */}
+              <div className={`bg-gradient-to-br ${gradient} rounded-2xl p-5 text-white relative overflow-hidden shadow-sm`}>
+                <div
+                  className="absolute inset-0 opacity-[0.12]"
+                  style={{
+                    backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+                    backgroundSize: "14px 14px",
+                  }}
+                />
+                <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2 relative">Category</p>
+                <p className="relative flex items-center gap-2 text-xl font-extrabold">
+                  <span>{categoryEmoji}</span>
+                  <span>{blog.category}</span>
+                </p>
+              </div>
+
+              {/* Share */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                  Share article
+                </p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied!");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-semibold rounded-xl transition-all"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Copy link
+                </button>
+              </div>
+
             </div>
-          )}
+          </aside>
 
-          {/* Author Bio */}
-          <div className="mt-8 p-5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white font-bold text-lg">
-                {blog.author.charAt(0)}
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white">{blog.author}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{blog.authorBio}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Back Button */}
-        <div className="mt-10 text-center">
-          <Link
-            href="/blogs"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-red text-white rounded-full hover:bg-red-600 transition-colors shadow-md hover:shadow-lg"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to all blogs
-          </Link>
         </div>
       </div>
     </div>

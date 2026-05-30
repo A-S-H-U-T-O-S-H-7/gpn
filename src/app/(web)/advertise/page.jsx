@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building, User, Mail, Phone, Globe,
-  Send, CheckCircle, TrendingUp, Users,
+  Send, CheckCircle, TrendingUp, Users, ArrowLeft,
 } from "lucide-react";
 import { Target, BarChart, Headphones } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { submitAdvertiseInquiry } from "@/lib/services/advertiseService";
+import { getContactInfo } from "@/lib/services/settingsService";
 
 export default function AdvertisePage() {
+  const router = useRouter();
+  const [contactInfo, setContactInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     companyName: "",
     contactPerson: "",
@@ -24,6 +29,18 @@ export default function AdvertisePage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Fetch contact info from settings
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      const result = await getContactInfo();
+      if (result.success) {
+        setContactInfo(result.contact);
+      }
+      setLoading(false);
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -125,27 +142,33 @@ export default function AdvertisePage() {
     },
   ];
 
-  // Shared input className
-  const inputCls = `
-    w-full pl-10 pr-4 py-2.5 text-sm rounded-xl
-    bg-white dark:bg-slate-900
-    text-slate-900 dark:text-white
-    placeholder:text-slate-400 dark:placeholder:text-slate-500
-    border border-slate-200 dark:border-slate-700
-    focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
-    focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
-    transition-all duration-200
-  `;
+  // Contact items from settings
+  const contactItems = [
+    {
+      icon: <Phone className="w-5 h-5" />,
+      label: "Phone",
+      value: contactInfo?.phone1 || "+91 1234567890",
+      href: `tel:${(contactInfo?.phone1 || "1234567890").replace(/\s/g, '')}`,
+      iconBg: "bg-teal-100 dark:bg-teal-900/40",
+      iconColor: "text-teal-600 dark:text-teal-400",
+    },
+    {
+      icon: <Mail className="w-5 h-5" />,
+      label: "Email",
+      value: contactInfo?.contactEmail || "ads@gpn.com",
+      href: `mailto:${contactInfo?.contactEmail || "ads@gpn.com"}`,
+      iconBg: "bg-violet-100 dark:bg-violet-900/40",
+      iconColor: "text-violet-600 dark:text-violet-400",
+    },
+  ];
 
-  const selectCls = `
-    w-full px-4 py-2.5 text-sm rounded-xl
-    bg-white dark:bg-slate-900
-    text-slate-900 dark:text-white
-    border border-slate-200 dark:border-slate-700
-    focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
-    focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
-    transition-all duration-200
-  `;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-violet-50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 py-4 pb-14 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
@@ -156,11 +179,27 @@ export default function AdvertisePage() {
 
       <div className="relative max-w-7xl mx-auto">
 
+        {/* ── Back Button ── */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-6"
+        >
+          <button
+            onClick={() => router.back()}
+            className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        </motion.div>
+
         {/* ── Header ── */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
           className="text-center mb-12"
         >
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-white/80 dark:bg-white/10 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 backdrop-blur-sm mb-5 shadow-sm">
@@ -189,7 +228,7 @@ export default function AdvertisePage() {
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
             className="lg:col-span-2 space-y-5"
           >
             {/* Why advertise */}
@@ -218,31 +257,36 @@ export default function AdvertisePage() {
               <div className="mt-8 h-1.5 w-full rounded-full bg-gradient-to-r from-teal-400 via-violet-400 to-sky-400 opacity-60" />
             </div>
 
-            {/* CTA contact strip */}
+            {/* Contact strip */}
             <div className="bg-gradient-to-br from-teal-500 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-teal-500/20 dark:shadow-teal-500/10">
               <h3 className="text-lg font-bold mb-1.5">Ready to get started?</h3>
               <p className="text-sm text-white/80 mb-5 leading-relaxed">
                 Our advertising team will reach out within 24 hours of your inquiry.
               </p>
               <div className="space-y-2.5">
-                <a
-                  href="mailto:ads@gpn.com"
-                  className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-3.5 h-3.5" />
-                  </span>
-                  ads@gpn.com
-                </a>
-                <a
-                  href="tel:+911234567890"
-                  className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
-                >
-                  <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-3.5 h-3.5" />
-                  </span>
-                  +91 1234567890
-                </a>
+                {contactItems.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                      {item.icon}
+                    </span>
+                    {item.value}
+                  </a>
+                ))}
+                {contactInfo?.phone2 && (
+                  <a
+                    href={`tel:${contactInfo.phone2.replace(/\s/g, '')}`}
+                    className="flex items-center gap-2.5 text-sm text-white/90 hover:text-white transition-colors"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
+                    </span>
+                    {contactInfo.phone2}
+                  </a>
+                )}
               </div>
             </div>
           </motion.div>
@@ -251,7 +295,7 @@ export default function AdvertisePage() {
           <motion.div
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             className="lg:col-span-3"
           >
             <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-gray-400 dark:border-slate-700/60 rounded-2xl shadow-xl shadow-violet-100/40 dark:shadow-none p-3 md:p-5">
@@ -313,7 +357,7 @@ export default function AdvertisePage() {
                             onChange={handleChange}
                             placeholder="Your company"
                             required
-                            className={inputCls}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                           />
                         </div>
                       </div>
@@ -331,7 +375,7 @@ export default function AdvertisePage() {
                             onChange={handleChange}
                             placeholder="Full name"
                             required
-                            className={inputCls}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                           />
                         </div>
                       </div>
@@ -352,7 +396,7 @@ export default function AdvertisePage() {
                             onChange={handleChange}
                             placeholder="you@company.com"
                             required
-                            className={inputCls}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                           />
                         </div>
                       </div>
@@ -371,7 +415,7 @@ export default function AdvertisePage() {
                             placeholder="10-digit number"
                             maxLength={10}
                             required
-                            className={inputCls}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                           />
                         </div>
                       </div>
@@ -390,7 +434,7 @@ export default function AdvertisePage() {
                           value={formData.website}
                           onChange={handleChange}
                           placeholder="https://yourcompany.com"
-                          className={inputCls}
+                          className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                         />
                       </div>
                     </div>
@@ -406,7 +450,7 @@ export default function AdvertisePage() {
                           value={formData.adType}
                           onChange={handleChange}
                           required
-                          className={selectCls}
+                          className="w-full px-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                         >
                           {adTypes.map((t) => (
                             <option key={t.value} value={t.value}>{t.label}</option>
@@ -423,7 +467,7 @@ export default function AdvertisePage() {
                           value={formData.budget}
                           onChange={handleChange}
                           required
-                          className={selectCls}
+                          className="w-full px-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                         >
                           <option value="">Select budget</option>
                           {budgetRanges.map((b) => (
@@ -443,7 +487,7 @@ export default function AdvertisePage() {
                         value={formData.duration}
                         onChange={handleChange}
                         required
-                        className={selectCls}
+                        className="w-full px-4 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                       >
                         <option value="">Select duration</option>
                         {durations.map((d) => (
@@ -464,16 +508,7 @@ export default function AdvertisePage() {
                         rows={4}
                         placeholder="Tell us about your advertising requirements…"
                         required
-                        className="
-                          w-full px-4 py-2.5 text-sm rounded-xl resize-none
-                          bg-white dark:bg-slate-900
-                          text-slate-900 dark:text-white
-                          placeholder:text-slate-400 dark:placeholder:text-slate-500
-                          border border-slate-200 dark:border-slate-700
-                          focus:outline-none focus:border-teal-400 dark:focus:border-teal-500
-                          focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20
-                          transition-all duration-200
-                        "
+                        className="w-full px-4 py-2.5 text-sm rounded-xl resize-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 focus:ring-2 focus:ring-teal-400/20 dark:focus:ring-teal-500/20 transition-all duration-200"
                       />
                     </div>
 
@@ -481,16 +516,7 @@ export default function AdvertisePage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="
-                        w-full cursor-pointer flex items-center justify-center gap-2.5
-                        py-3.5 px-6 rounded-xl text-sm font-bold tracking-wide text-white
-                        bg-gradient-to-r from-teal-500 to-violet-500
-                        hover:from-teal-600 hover:to-violet-600
-                        focus:outline-none focus:ring-2 focus:ring-teal-400/50
-                        disabled:opacity-60 disabled:cursor-not-allowed
-                        shadow-lg shadow-teal-500/25 dark:shadow-teal-500/10
-                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99]
-                      "
+                      className="w-full cursor-pointer flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl text-sm font-bold tracking-wide text-white bg-gradient-to-r from-teal-500 to-violet-500 hover:from-teal-600 hover:to-violet-600 focus:outline-none focus:ring-2 focus:ring-teal-400/50 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-teal-500/25 dark:shadow-teal-500/10 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99]"
                     >
                       {isSubmitting ? (
                         <>

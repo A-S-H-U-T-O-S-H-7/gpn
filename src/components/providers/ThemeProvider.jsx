@@ -1,16 +1,15 @@
 "use client";
 
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { useEffect } from "react";
+import useThemeStore from "@/lib/stores/useThemeStore";
 
 export default function ThemeProvider({ children }) {
-  return (
-    <NextThemesProvider 
-      attribute="class" 
-      defaultTheme="system" 
-      enableSystem
-      disableTransitionOnChange
-    >
-      {children}
-    </NextThemesProvider>
-  );
+  const { isDarkMode } = useThemeStore();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    document.documentElement.style.colorScheme = isDarkMode ? "dark" : "light";
+  }, [isDarkMode]);
+
+  return children;
 }
