@@ -107,7 +107,7 @@ export default function HeroSection() {
   const currentItem = heroItems[currentIndex];
 
   return (
-    <section className="py-3 bg-ghee dark:bg-slate-900/60">
+    <section className="pb-3 pt-5 md:pt-9 bg-ghee dark:bg-slate-900/60">
       <div className="max-w-8xl mx-auto px-3 sm:px-7 lg:px-9">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

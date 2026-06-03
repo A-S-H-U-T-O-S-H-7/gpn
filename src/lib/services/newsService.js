@@ -523,3 +523,33 @@ export const getNewsByCategory = async (categorySlug, page = 1, itemsPerPage = 1
     return { success: false, error: error.message, news: [] };
   }
 };
+
+export const getBreakingNews = async (maxlimit = 10) => {
+  try {
+    const newsRef = collection(db, NEWS_COLLECTION);
+    const q = query(
+      newsRef,
+      where('status', '==', 'published'),
+      where('isBreaking', '==', true),
+      orderBy('publishedAt', 'desc'),
+      limit(maxlimit)
+    );
+    const snapshot = await getDocs(q);
+    
+    const news = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      news.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        publishedAt: data.publishedAt?.toDate?.() || null,
+      });
+    });
+    
+    return { success: true, news };
+  } catch (error) {
+    console.error('Error getting breaking news:', error);
+    return { success: false, error: error.message, news: [] };
+  }
+};

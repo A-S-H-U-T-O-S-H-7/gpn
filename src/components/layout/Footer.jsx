@@ -116,34 +116,34 @@ export default function Footer() {
             </div>
 
             {/* Column 5 - Quick Contact */}
-            <div>
+            <div className="min-w-0">
               <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Contact</h4>
               <div className="space-y-2">
                 {contact?.contactEmail && (
-                  <a href={`mailto:${contact.contactEmail}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                    <Mail className="w-4 h-4 text-red-500" />
-                    {contact.contactEmail}
+                  <a href={`mailto:${contact.contactEmail}`} className="flex items-start gap-2 text-gray-400 hover:text-red-500 text-base min-w-0">
+                    <Mail className="w-4 h-4 text-red-500 flex-shrink-0 mt-1" />
+                    <span className="min-w-0 break-all">{contact.contactEmail}</span>
                   </a>
                 )}
                 {contact?.phone1 && (
                   <a href={`tel:${contact.phone1.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                    <Phone className="w-4 h-4 text-red-500" />
-                    {contact.phone1}
+                    <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span className="min-w-0 break-words">{contact.phone1}</span>
                   </a>
                 )}
                 {contact?.phone2 && (
                   <a href={`tel:${contact.phone2.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                    <Phone className="w-4 h-4 text-red-500" />
-                    {contact.phone2}
+                    <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span className="min-w-0 break-words">{contact.phone2}</span>
                   </a>
                 )}
 
                 {contact?.address && (
-      <div className="flex items-start gap-3 text-gray-400 text-sm">
-        <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-        <span className="leading-relaxed">{contact.address}</span>
-      </div>
-    )}
+                  <div className="flex items-start gap-3 text-gray-400 text-sm min-w-0">
+                    <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span className="min-w-0 leading-relaxed break-words">{contact.address}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -214,26 +214,32 @@ export default function Footer() {
                   <li><Link href="/advertise" className="text-gray-400 hover:text-red-500 text-base">Advertise With Us</Link></li>
                 </ul>
               </div>
-              <div>
+              <div className="min-w-0">
                 <h4 className="text-white font-semibold text-base mb-4 pb-1 border-b border-red-500 inline-block">Quick Contact</h4>
                 <div className="space-y-2">
                   {contact?.contactEmail && (
-                    <a href={`mailto:${contact.contactEmail}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                      <Mail className="w-4 h-4 text-red-500" />
-                      {contact.contactEmail}
+                    <a href={`mailto:${contact.contactEmail}`} className="flex items-start gap-2 text-gray-400 hover:text-red-500 text-base min-w-0">
+                      <Mail className="w-4 h-4 text-red-500 flex-shrink-0 mt-1" />
+                      <span className="min-w-0 break-all">{contact.contactEmail}</span>
                     </a>
                   )}
                   {contact?.phone1 && (
                     <a href={`tel:${contact.phone1.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                      <Phone className="w-4 h-4 text-red-500" />
-                      {contact.phone1}
+                      <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <span className="min-w-0 break-words">{contact.phone1}</span>
                     </a>
                   )}
                   {contact?.phone2 && (
                     <a href={`tel:${contact.phone2.replace(/\s/g, '')}`} className="flex items-center gap-2 text-gray-400 hover:text-red-500 text-base">
-                      <Phone className="w-4 h-4 text-red-500" />
-                      {contact.phone2}
+                      <Phone className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <span className="min-w-0 break-words">{contact.phone2}</span>
                     </a>
+                  )}
+                  {contact?.address && (
+                    <div className="flex items-start gap-3 text-gray-400 text-sm min-w-0">
+                      <MapPin className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                      <span className="min-w-0 leading-relaxed break-words">{contact.address}</span>
+                    </div>
                   )}
                 </div>
               </div>
