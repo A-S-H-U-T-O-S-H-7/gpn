@@ -3,7 +3,7 @@ import MostWatched from "./MostWatched";
 
 export default function EditorsAndWatchedGrid() {
   return (
-    <section className="py-10 bg-linear-to-br from-blue-100 to-cyan-200 dark:bg-linear-to-br dark:from-blue-600 dark:to-cyan-700 ">
+    <section className="py-10 bg-linear-to-br from-blue-100 to-cyan-200 dark:bg-linear-to-br dark:from-blue-950 dark:to-cyan-900 ">
       <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-900 shadow-sm">
 
