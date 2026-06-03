@@ -59,7 +59,7 @@ export default function NewsletterSection() {
 
   return (
     <section className="py-4 md:py-12">
-      <div className="max-w-7xl mx-auto  px-2 md:px-8 lg:px-10">
+      <div className="max-w-7xl mx-auto  px-4 md:px-8 lg:px-10">
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
           <div className="flex flex-col lg:flex-row items-stretch">
 

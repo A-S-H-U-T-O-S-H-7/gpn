@@ -134,12 +134,12 @@ export default function TrendingSection() {
 
   return (
     <section className="py-10 bg-ghee dark:bg-slate-900/50">
-      <div className="max-w-8xl mx-auto px-2 sm:px-8 lg:px-10">
+      <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
         {/* Section Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Flame className="w-6 h-6 text-red fill-red" />
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               Trending Now
             </h2>
             <span className="px-2 py-1 bg-red/10 text-red text-xs font-semibold rounded-full">

@@ -65,7 +65,7 @@ export default function HoroscopeSection() {
         <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="w-1 h-7 bg-red-600 rounded-full" />
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
               Daily Horoscope
             </h2>
             <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-full">

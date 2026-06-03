@@ -19,7 +19,7 @@ const PLAY_URL = "https://play.google.com/store/apps/details?id=com.myastro.user
 export default function MyAstroBanner() {
   return (
     <section className="py-3">
-      <div className="max-w-8xl mx-auto px-2 sm:px-8 lg:px-10">
+      <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
         <div
           className="relative overflow-hidden rounded-2xl"
           style={{

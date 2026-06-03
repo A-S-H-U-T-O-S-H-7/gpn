@@ -121,13 +121,13 @@ export default function CategorySection() {
 
   return (
     <section className="py-8 bg-ghee dark:bg-slate-900/50">
-      <div className="max-w-8xl mx-auto px-2 sm:px-8 lg:px-10">
+      <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
         
         {/* Section Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-1 h-7 bg-red rounded-full"></div>
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               Explore by Category
             </h2>
           </div>
