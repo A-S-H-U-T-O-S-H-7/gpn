@@ -19,17 +19,17 @@ import {
 } from "@/lib/services/settingsService";
 
 const tabs = [
-  { id: "general", name: "General", icon: "⚙️" },
+  // { id: "general", name: "General", icon: "⚙️" },
   { id: "seo", name: "SEO", icon: "🔍" },
   { id: "social", name: "Social Links", icon: "📱" },
-  { id: "contact", name: "Contact", icon: "📞" }, // NEW TAB
+  { id: "contact", name: "Contact", icon: "📞" }, 
 ];
 
 export default function SettingsPage() {
   const { isDarkMode } = useThemeStore();
   const { admin } = useAdminAuthStore();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("seo");
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -148,13 +148,13 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div>
-        {activeTab === "general" && settings?.general && (
+        {/* {activeTab === "general" && settings?.general && (
           <GeneralSettings
             settings={settings.general}
             onUpdate={handleUpdateGeneral}
             isDark={isDarkMode}
           />
-        )}
+        )} */}
         
         {activeTab === "seo" && settings?.seo && (
           <SeoSettings
