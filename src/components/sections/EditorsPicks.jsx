@@ -2,8 +2,25 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, Award, Play } from "lucide-react";
+import { Clock, Award, Play, Eye } from "lucide-react";
 import { getEditorsPicks } from "@/lib/services/homepageService";
+
+// Helper function to strip HTML tags
+function stripHtmlTags(html, maxLength = 120) {
+  if (!html) return "";
+  const stripped = html.replace(/<[^>]*>/g, "");
+  if (stripped.length > maxLength) {
+    return stripped.substring(0, maxLength) + "...";
+  }
+  return stripped;
+}
+
+function formatViews(views) {
+  if (!views) return "0";
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + "M";
+  if (views >= 1000) return (views / 1000).toFixed(1) + "K";
+  return views.toString();
+}
 
 export default function EditorsPicks() {
   const [picks, setPicks] = useState([]);
@@ -94,10 +111,10 @@ export default function EditorsPicks() {
                 {idx + 1}
               </div>
               {pick.image ? (
-                <img src={pick.image} alt={pick.title} className="w-full h-full object-cover" />
+                <img src={pick.image} alt={pick.title} className="w-full h-full object-cover object-center" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-gray-400 dark:text-gray-600 text-xs">Image</span>
+                  <span className="text-gray-400 dark:text-gray-600 text-xs">📰</span>
                 </div>
               )}
               {pick.type === 'video' && (
@@ -115,29 +132,39 @@ export default function EditorsPicks() {
             {/* Content */}
             <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
               <div>
+                {/* Category Badge - Only category, no tags */}
                 <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                   <span
-                    className="inline-block text-xs font-semibold px-2 py-0.5 rounded"
+                    className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded"
                     style={{ background: "rgba(239,68,68,0.08)", color: "#ef4444" }}
                   >
-                    {pick.category}
+                    {pick.category || (pick.type === 'news' ? 'News' : 'Video')}
                   </span>
-                  {pick.type === 'video' && (
-                    <span className="text-[10px] text-red-500 font-medium border border-red-200 dark:border-red-800 px-1.5 py-0.5 rounded">
-                      VIDEO
-                    </span>
-                  )}
                 </div>
-                <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors leading-snug">
+                
+                {/* Title - 2 lines */}
+                <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white line-clamp-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors leading-snug mb-1">
                   {pick.title}
                 </h3>
+                
+                {/* Description - 2 lines with stripped HTML tags */}
+                {pick.description && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 leading-relaxed hidden sm:block mt-1">
+                    {stripHtmlTags(pick.description, 90)}
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-1 hidden sm:block">
-                {pick.description}
-              </p>
-              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
-                <Clock className="w-3 h-3 flex-shrink-0" />
-                <span>{pick.timeAgo}</span>
+              
+              {/* Stats Row - Views and Time */}
+              <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500 dark:text-gray-500">
+                <div className="flex items-center gap-1">
+                  <Eye className="w-2.5 h-2.5" />
+                  <span>{formatViews(pick.views)} views</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  <span>{pick.timeAgo}</span>
+                </div>
               </div>
             </div>
           </Link>

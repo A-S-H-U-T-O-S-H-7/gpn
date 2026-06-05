@@ -1,82 +1,118 @@
 "use client";
+import dynamic from "next/dynamic";
+import "suneditor/dist/css/suneditor.min.css";
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import { Bold, Italic, List, ListOrdered, Undo, Redo, Heading1, Heading2 } from 'lucide-react';
+const SunEditor = dynamic(() => import("suneditor-react"), {
+  ssr: false
+});
 
-const MenuBar = ({ editor, isDark }) => {
-  if (!editor) return null;
-
-  const buttons = [
-    { icon: Bold, action: () => editor.chain().focus().toggleBold().run(), isActive: editor.isActive('bold'), label: 'Bold' },
-    { icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), isActive: editor.isActive('italic'), label: 'Italic' },
-    { icon: List, action: () => editor.chain().focus().toggleBulletList().run(), isActive: editor.isActive('bulletList'), label: 'Bullet List' },
-    { icon: ListOrdered, action: () => editor.chain().focus().toggleOrderedList().run(), isActive: editor.isActive('orderedList'), label: 'Numbered List' },
-    { icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), isActive: editor.isActive('heading', { level: 1 }), label: 'Heading 1' },
-    { icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), isActive: editor.isActive('heading', { level: 2 }), label: 'Heading 2' },
-  ];
-
-  return (
-    <div className={`flex flex-wrap gap-1 p-2 border-b ${isDark ? "border-rose-500/50" : "border-rose-300"}`}>
-      {buttons.map(({ icon: Icon, action, isActive, label }) => (
-        <button
-          key={label}
-          onClick={action}
-          className={`p-1.5 rounded transition-colors ${
-            isActive
-              ? isDark ? "bg-red-500/20 text-red" : "bg-red-100 text-red"
-              : isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
-          }`}
-          title={label}
-        >
-          <Icon className="w-4 h-4" />
-        </button>
-      ))}
-      <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1" />
-      <button
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-        className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
-          isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
-        }`}
-      >
-        <Undo className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-        className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
-          isDark ? "text-gray-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
-        }`}
-      >
-        <Redo className="w-4 h-4" />
-      </button>
-    </div>
-  );
-};
-
-export default function RichTextEditor({ value, onChange, placeholder, isDark }) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: placeholder || 'Write your content here...' }),
-    ],
-    content: value,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class: `prose max-w-none min-h-[300px] px-4 py-3 focus:outline-none ${isDark ? 'text-white' : 'text-gray-900'}`,
-      },
-    },
-  });
+export default function RichTextEditor({
+  value,
+  onChange,
+  label = "Content",
+  placeholder = "Write your content here...",
+  minHeight = "250px",
+  showLabel = true,
+  error = null,
+  required = false,
+  isDark = false
+}) {
 
   return (
-    <div className={`rounded-lg border overflow-hidden ${isDark ? "border-rose-500/60" : "border-rose-300"}`}>
-      <MenuBar editor={editor} isDark={isDark} />
-      <EditorContent editor={editor} />
+    <div>
+      {showLabel && (
+        <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      
+      <div
+        className={`rounded-xl border-2 transition-all duration-200 overflow-hidden ${
+          isDark
+            ? "border-red-500/40 hover:border-red-500"
+            : "border-red-300 hover:border-red-400"
+        } ${error ? "border-red-500" : ""}`}
+      >
+        <SunEditor
+          onChange={onChange}
+          setContents={value}
+          defaultValue={value || ""}
+          setOptions={{
+            iframe: false,
+            fullScreen: false,
+            buttonList: [
+              ["undo", "redo"],
+              ["bold", "italic", "underline", "strike"],
+              ["font", "fontSize", "formatBlock"],
+              ["list", "align"],
+              ["link", "image", "video"],
+              ["removeFormat"]
+            ],
+            formats: {
+              h1: "Heading 1",
+              h2: "Heading 2",
+              h3: "Heading 3",
+              p: "Normal"
+            },
+            font: [
+              "Arial",
+              "Helvetica",
+              "Times New Roman",
+              "Georgia",
+              "Impact",
+              "Tahoma",
+              "Verdana"
+            ],
+            fontSize: [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36],
+            minHeight: minHeight,
+            height: "auto",
+            placeholder: placeholder,
+            width: "100%",
+            buttonStyle: "soft",
+            toolbarStickyTop: 0,
+            attributesWhitelist: { all: "style" },
+            colorList: [
+              "#ef4444", // Red
+              "#dc2626", // Darker Red
+              "#000000", // Black
+              "#333333", // Dark Gray
+              "#666666", // Gray
+              "#999999", // Light Gray
+              "#ffffff", // White
+              "#3b82f6", // Blue
+              "#10b981", // Green
+              "#f59e0b", // Orange
+              "#8b5cf6", // Purple
+              "#ec4899"  // Pink
+            ],
+            linkTargetNewWindow: true,
+            showPathLabel: false,
+            resizingBar: false,
+            defaultStyle: `
+              font-family: inherit;
+              font-size: 14px;
+              line-height: 1.6;
+              background-color: ${isDark ? "#1f2937" : "#ffffff"};
+              color: ${isDark ? "#f3f4f6" : "#111827"};
+            `,
+            katex: false
+          }}
+          setDefaultStyle={`
+            background-color: ${isDark ? "#1f2937" : "#ffffff"};
+            border-radius: 0.75rem;
+            min-height: ${minHeight};
+            padding: 1rem;
+            color: ${isDark ? "#f3f4f6" : "#111827"};
+            border: none;
+          `}
+        />
+      </div>
+      
+      {error && (
+        <p className="text-red-500 text-sm mt-1">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

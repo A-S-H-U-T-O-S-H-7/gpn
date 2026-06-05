@@ -30,8 +30,12 @@ export const categoryIcons = [
   { value: 'Apple', label: '🍎 Food', icon: 'Apple' },
   { value: 'Car', label: '🚗 Automotive', icon: 'Car' },
   { value: 'Rocket', label: '🚀 Space', icon: 'Rocket' },
-];
 
+  // New Categories
+  { value: 'TrendingUp', label: '📈 Business', icon: 'TrendingUp' },
+  { value: 'Zap', label: '📻 Halchal News', icon: 'Zap' },
+  { value: 'Goal', label: '⚽ Sports', icon: 'Goal' },
+];
 // Import icons for mapping
 import { 
   Globe, Landmark, Briefcase, Cpu, Trophy, Clapperboard,

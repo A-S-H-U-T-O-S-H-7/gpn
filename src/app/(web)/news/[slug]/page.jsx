@@ -307,7 +307,7 @@ export default function NewsDetailPage() {
                 {/* Title */}
                 <h1 className="text-2xl sm:text-3xl md:text-4xl xl:text-[2.6rem] font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">
                   {news.title}
-                </h1>
+                </h1> 
 
                 {/* Stats row */}
                 <div className="flex flex-wrap items-center gap-2 md:gap-4 pb-3 md:pb-5 border-b border-slate-200 dark:border-slate-800">

@@ -16,7 +16,7 @@ export default function TrendingSection() {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   
   const loaderRef = useRef(null);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
 
   // Fetch initial items
   const fetchInitialItems = async () => {
@@ -96,17 +96,15 @@ export default function TrendingSection() {
     fetchInitialItems();
   }, []);
 
-  const displayedItems = showAll ? items : items.slice(0, 6);
+  const displayedItems = showAll ? items : items.slice(0, 8);
 
   if (loading && items.length === 0) {
     return (
       <section className="py-10 bg-ghee dark:bg-slate-900/50">
         <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <Flame className="w-6 h-6 text-red fill-red" />
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Trending Now</h2>
-            </div>
+          <div className="flex items-center gap-2 mb-6">
+            <Flame className="w-6 h-6 text-red fill-red" />
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Trending Now</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[1,2,3,4,5,6,7,8].map((i) => (
@@ -135,35 +133,15 @@ export default function TrendingSection() {
   return (
     <section className="py-10 bg-ghee dark:bg-slate-900/50">
       <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Flame className="w-6 h-6 text-red fill-red" />
-            <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Trending Now
-            </h2>
-            <span className="px-2 py-1 bg-red/10 text-red text-xs font-semibold rounded-full">
-              {totalItems} Stories
-            </span>
-          </div>
-          {!showAll && items.length >= 6 && (
-            <button
-              onClick={handleShowAll}
-              className="flex items-center gap-1 px-4 py-2 text-sm text-red hover:text-red-600 font-medium rounded-lg hover:bg-red/10 transition-colors"
-            >
-              <ChevronDown className="w-4 h-4" />
-              View All
-            </button>
-          )}
-          {showAll && (
-            <button
-              onClick={handleShowLess}
-              className="flex items-center gap-1 px-4 py-2 text-sm text-red hover:text-red-600 font-medium rounded-lg hover:bg-red/10 transition-colors"
-            >
-              <ChevronUp className="w-4 h-4" />
-              Show Less
-            </button>
-          )}
+        {/* Section Header - No button here anymore */}
+        <div className="flex items-center gap-2 mb-6">
+          <Flame className="w-6 h-6 text-red fill-red" />
+          <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
+            Trending Now
+          </h2>
+          <span className="px-2 py-1 bg-red/10 text-red text-xs font-semibold rounded-full">
+            {totalItems} Stories
+          </span>
         </div>
 
         {/* Trending Grid */}
@@ -180,11 +158,11 @@ export default function TrendingSection() {
                   <img 
                     src={item.image} 
                     alt={item.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">Image</span>
+                    <span className="text-gray-400 text-xs">📰</span>
                   </div>
                 )}
                 {/* Trending Rank Badge */}
@@ -232,6 +210,31 @@ export default function TrendingSection() {
           ))}
         </div>
 
+        {/* Show All / Show Less Button - CENTERED AT BOTTOM with larger border */}
+        {!showAll && items.length >= 8 && (
+          <div className="flex justify-center mt-10">
+            <button
+              onClick={handleShowAll}
+              className="group cursor-pointer flex items-center gap-2 px-3 py-2 bg-transparent border-2 border-red-500 hover:bg-red-500 text-red-600 hover:text-white font-semibold rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-red-500/20"
+            >
+              <span>Show All </span>
+              <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+            </button>
+          </div>
+        )}
+
+        {showAll && (
+          <div className="flex justify-center mt-10">
+            <button
+              onClick={handleShowLess}
+              className="group cursor-pointer flex items-center gap-2 px-3 py-2 bg-transparent border-2 border-gray-400 hover:border-red-500 text-gray-600 hover:text-red-500 font-semibold rounded-full transition-all duration-300"
+            >
+              <ChevronUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+              <span>Show Less</span>
+            </button>
+          </div>
+        )}
+
         {/* Load More Trigger for Infinite Scroll */}
         {showAll && hasMore && (
           <div ref={loaderRef} className="flex justify-center items-center py-8 mt-4">
@@ -253,7 +256,7 @@ export default function TrendingSection() {
         )}
 
         {/* End Message */}
-        {showAll && !hasMore && items.length > 6 && (
+        {showAll && !hasMore && items.length > 8 && (
           <div className="text-center py-6">
             <p className="text-xs text-gray-400 dark:text-gray-500">
               You've reached the end of trending stories
