@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Search, Sun, Moon, LogOut, Bell, UserCircle, ChevronDown } from "lucide-react";
+import { Menu, X, Search, Sun, Moon, LogOut, Bell, UserCircle, ChevronDown, ChevronUp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ export default function Navbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -27,7 +28,9 @@ export default function Navbar() {
   const { isDarkMode, toggleTheme } = useThemeStore();
   const router = useRouter();
   const dropdownTimeout = useRef(null);
+  const profileTimeout = useRef(null);
   const categoryRef = useRef(null);
+  const profileRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
 
   useEffect(() => {
@@ -78,7 +81,6 @@ export default function Navbar() {
   useEffect(() => {
     if (!isMobileSearchOpen) return;
     const handleClickOutside = (e) => {
-      // Allow clicks inside the nav bar search area
       if (!e.target.closest("[data-mobile-search]")) {
         setIsMobileSearchOpen(false);
         setMobileSearchQuery("");
@@ -88,7 +90,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMobileSearchOpen]);
 
-  // Handle category dropdown hover with delay
+  // Handle category dropdown hover with delay (Desktop Mega Menu)
   const handleCategoryMouseEnter = () => {
     if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current);
     setIsCategoriesOpen(true);
@@ -100,9 +102,22 @@ export default function Navbar() {
     }, 200);
   };
 
+  // Handle profile dropdown with proper delay to prevent gap issues
+  const handleProfileMouseEnter = () => {
+    if (profileTimeout.current) clearTimeout(profileTimeout.current);
+    setIsProfileOpen(true);
+  };
+
+  const handleProfileMouseLeave = () => {
+    profileTimeout.current = setTimeout(() => {
+      setIsProfileOpen(false);
+    }, 200);
+  };
+
   useEffect(() => {
     return () => {
       if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current);
+      if (profileTimeout.current) clearTimeout(profileTimeout.current);
     };
   }, []);
 
@@ -123,11 +138,6 @@ export default function Navbar() {
       setMobileSearchQuery("");
       setIsMobileSearchOpen(false);
     }
-  };
-
-  const closeMobileSearch = () => {
-    setIsMobileSearchOpen(false);
-    setMobileSearchQuery("");
   };
 
   const navLinks = [
@@ -178,6 +188,12 @@ export default function Navbar() {
     );
   };
 
+  // Split categories into 3 columns for mega menu
+  const categoryColumns = [[], [], []];
+  categories.forEach((category, index) => {
+    categoryColumns[index % 3].push(category);
+  });
+
   return (
     <>
       <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800">
@@ -186,7 +202,7 @@ export default function Navbar() {
           {/* ─── Main nav row ─────────────────────────────────────────── */}
           <div className="flex items-center h-16 gap-2">
 
-            {/* LEFT: Logo — always left, never shrinks */}
+            {/* LEFT: Logo */}
             <div className="flex-shrink-0">
               <a href="/" className="flex items-center">
                 <Image
@@ -200,7 +216,7 @@ export default function Navbar() {
               </a>
             </div>
 
-            {/* LEFT: Desktop nav links (md+) */}
+            {/* LEFT: Desktop nav links */}
             <div className="hidden md:flex items-center space-x-6 ml-4">
               {navLinks.map((link) => (
                 <a
@@ -218,7 +234,7 @@ export default function Navbar() {
                 </a>
               ))}
 
-              {/* Categories Dropdown */}
+              {/* Categories Dropdown - Mega Menu */}
               <div
                 ref={categoryRef}
                 className="relative"
@@ -230,25 +246,32 @@ export default function Navbar() {
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCategoriesOpen ? "rotate-180" : ""}`} />
                 </button>
 
+                {/* Mega Menu Dropdown */}
                 {isCategoriesOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-slide-down">
-                    <div className="py-2">
+                  <div className="absolute top-full left-0 mt-2 w-[600px] rounded-xl shadow-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-slide-down">
+                    <div className="p-6">
                       {loadingCategories ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+                        <div className="text-center py-8 text-gray-500">Loading categories...</div>
                       ) : categories.length > 0 ? (
-                        categories.map((category) => (
-                          <Link
-                            key={category.id}
-                            href={`/category/${category.slug}`}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red transition-colors"
-                            onClick={() => setIsCategoriesOpen(false)}
-                          >
-                            <span className="text-lg">{category.iconEmoji || "📰"}</span>
-                            <span className="font-medium">{category.name}</span>
-                          </Link>
-                        ))
+                        <div className="grid grid-cols-3 gap-6">
+                          {categoryColumns.map((column, colIndex) => (
+                            <div key={colIndex} className="space-y-2">
+                              {column.map((category) => (
+                                <Link
+                                  key={category.id}
+                                  href={`/category/${category.slug}`}
+                                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors group"
+                                  onClick={() => setIsCategoriesOpen(false)}
+                                >
+                                  <span className="text-xl">{category.iconEmoji || "📰"}</span>
+                                  <span className="font-medium">{category.name}</span>
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
                       ) : (
-                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No categories found</div>
+                        <div className="text-center py-8 text-gray-500">No categories found</div>
                       )}
                     </div>
                   </div>
@@ -256,7 +279,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* CENTER: Desktop Search Bar — fixed max-width, centered with auto margins */}
+            {/* CENTER: Desktop Search Bar */}
             <div className="hidden lg:flex w-full max-w-sm xl:max-w-md mx-6">
               <form onSubmit={handleSearch} className="relative w-full">
                 <input
@@ -272,18 +295,13 @@ export default function Navbar() {
               </form>
             </div>
 
-            {/* ── Spacer: grows to push right-side icons all the way to the right on both mobile and desktop ── */}
+            {/* Spacer */}
             <div className="flex-1" />
 
-            {/* ─── Right-side icon strip ─────────────────────────────── */}
-            {/*
-              KEY FIX: This strip is always flex, always the same width.
-              The mobile search is no longer absolutely positioned here —
-              it replaces the logo+spacer area in the row instead.
-            */}
+            {/* Right-side icon strip */}
             <div className="flex items-center gap-1 flex-shrink-0">
 
-              {/* Mobile search toggle — hidden on lg+ */}
+              {/* Mobile search toggle */}
               <button
                 data-mobile-search
                 onClick={() => {
@@ -302,7 +320,7 @@ export default function Navbar() {
               {/* Theme toggle */}
               {renderThemeToggle()}
 
-              {/* Subscribe — hidden on mobile to save space */}
+              {/* Subscribe button */}
               {isAuthenticated && isSubscribed ? (
                 <button
                   disabled
@@ -321,7 +339,7 @@ export default function Navbar() {
                 </button>
               )}
 
-              {/* Login */}
+              {/* Login button for non-authenticated users */}
               {!isAuthenticated && (
                 <Link
                   href="/login"
@@ -332,16 +350,16 @@ export default function Navbar() {
                 </Link>
               )}
 
-              {/* User account dropdown */}
+              {/* User account dropdown - FIXED GAP ISSUE */}
               {isAuthenticated && (
                 <div
+                  ref={profileRef}
                   className="relative hidden sm:block"
-                  onMouseEnter={() => setIsProfileOpen(true)}
-                  onMouseLeave={() => setIsProfileOpen(false)}
+                  onMouseEnter={handleProfileMouseEnter}
+                  onMouseLeave={handleProfileMouseLeave}
                 >
                   <button
                     type="button"
-                    onClick={() => setIsProfileOpen(true)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
                   >
                     <div className="w-7 h-7 bg-gradient-to-r from-red-600 to-red-500 rounded-full flex items-center justify-center">
@@ -356,7 +374,7 @@ export default function Navbar() {
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-52 rounded-xl shadow-xl border z-50 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden animate-slide-down">
+                    <div className="absolute right-0 top-full mt-1 w-52 rounded-xl shadow-xl border z-50 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden animate-slide-down">
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                         <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
                           {user?.name || "User"}
@@ -396,17 +414,9 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* ─── Mobile Search Bar — slides in BELOW the nav row ──────── */}
-          {/*
-            This is the KEY FIX: instead of an overlapping absolute-positioned
-            input inside the icon strip, the search bar opens as a full-width
-            row below the main nav row. Zero overlap, always readable.
-          */}
+          {/* Mobile Search Bar */}
           {isMobileSearchOpen && (
-            <div
-              data-mobile-search
-              className="lg:hidden pb-3 pt-1 animate-slide-down"
-            >
+            <div data-mobile-search className="lg:hidden pb-3 pt-1 animate-slide-down">
               <form onSubmit={handleMobileSearch} className="relative flex items-center">
                 <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input
@@ -439,7 +449,7 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* ─── Mobile Menu ──────────────────────────────────────────── */}
+          {/* Mobile Menu */}
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800">
               <div className="flex flex-col space-y-1">
@@ -457,30 +467,47 @@ export default function Navbar() {
                   </a>
                 ))}
 
-                {/* Categories Section */}
+                {/* Mobile Categories Section - Expandable/Collapsible with 2 columns */}
                 <div className="pt-3">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-3">
-                    Categories
-                  </p>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {loadingCategories ? (
-                      <div className="col-span-2 text-center py-2 text-sm text-gray-500">Loading...</div>
-                    ) : categories.length > 0 ? (
-                      categories.map((category) => (
-                        <Link
-                          key={category.id}
-                          href={`/category/${category.slug}`}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          <span className="text-base">{category.iconEmoji || "📰"}</span>
-                          <span>{category.name}</span>
-                        </Link>
-                      ))
+                  <button
+                    onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
+                    className="flex items-center justify-between w-full px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📂</span>
+                      <span className="font-medium">Categories</span>
+                      <span className="text-xs text-gray-400">({categories.length})</span>
+                    </div>
+                    {isMobileCategoriesOpen ? (
+                      <ChevronUp className="w-4 h-4" />
                     ) : (
-                      <div className="col-span-2 text-center py-2 text-sm text-gray-500">No categories found</div>
+                      <ChevronDown className="w-4 h-4" />
                     )}
-                  </div>
+                  </button>
+                  
+                  {isMobileCategoriesOpen && (
+                    <div className="mt-2 px-2 animate-slide-down">
+                      {loadingCategories ? (
+                        <div className="text-center py-4 text-sm text-gray-500">Loading categories...</div>
+                      ) : categories.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {categories.map((category) => (
+                            <Link
+                              key={category.id}
+                              href={`/category/${category.slug}`}
+                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <span className="text-base flex-shrink-0">{category.iconEmoji || "📰"}</span>
+                              <span className="truncate">{category.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-sm text-gray-500">No categories found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Auth / Subscribe row */}
