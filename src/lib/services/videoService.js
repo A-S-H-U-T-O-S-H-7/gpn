@@ -83,7 +83,7 @@ const setVideoAsHero = async (videoId, adminData) => {
 
 // Create video
 export const createVideo = async (videoData, adminData) => {
-  try {
+  try { 
     const videoId = getYouTubeId(videoData.youtubeUrl);
     
     const videoRef = await addDoc(collection(db, VIDEOS_COLLECTION), {
@@ -98,6 +98,7 @@ export const createVideo = async (videoData, adminData) => {
       description: videoData.description || '',
       metatitle: videoData.metatitle || videoData.title,
       metadesc: videoData.metadesc || videoData.description?.substring(0, 160) || '',
+      metakeywords: videoData.metakeywords || '',
       status: videoData.status,
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
@@ -150,11 +151,12 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       description: videoData.description || '',
       metatitle: videoData.metatitle || videoData.title,
       metadesc: videoData.metadesc || videoData.description?.substring(0, 160) || '',
+      metakeywords: videoData.metakeywords || '',
       status: videoData.status,
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
-      isHero: videoData.isHero || false,  // ← ADD THIS
+      isHero: videoData.isHero || false,  
       updatedAt: serverTimestamp(),
     };
     
@@ -290,6 +292,7 @@ export const getVideoById = async (videoId) => {
         description: data.description || '',
         metatitle: data.metatitle || '',
         metadesc: data.metadesc || '',
+        metakeywords: data.metakeywords || '',
         status: data.status || 'draft',
         isFeatured: data.isFeatured || false,
         isEditorPick: data.isEditorPick || false,
