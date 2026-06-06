@@ -78,19 +78,13 @@ const setNewsAsHero = async (newsId, adminData) => {
   try {
     const batch = writeBatch(db);
     
-    // Remove hero flag from all news
+    // Remove hero flag from all news ONLY (not videos)
     const newsQuery = query(collection(db, NEWS_COLLECTION), where('isHero', '==', true));
     const newsSnapshot = await getDocs(newsQuery);
     newsSnapshot.forEach(doc => {
       batch.update(doc.ref, { isHero: false });
     });
     
-    // Remove hero flag from all videos
-    const videosQuery = query(collection(db, 'videos'), where('isHero', '==', true));
-    const videosSnapshot = await getDocs(videosQuery);
-    videosSnapshot.forEach(doc => {
-      batch.update(doc.ref, { isHero: false });
-    });
     
     // Set hero flag on the selected news
     const newsRef = doc(db, NEWS_COLLECTION, newsId);
