@@ -156,7 +156,7 @@ export default function HeroSection() {
                       )}
 
                       {/* Gradient overlay - stronger for better text readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent" />
 
                       {/* Top-left badge */}
                       <div className="absolute top-4 left-4 z-10">

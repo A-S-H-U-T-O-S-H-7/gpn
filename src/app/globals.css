@@ -155,10 +155,11 @@
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
 
-/* Strong/Bold text */
+/* Strong/Bold text - FIXED: No backgrounds */
 .prose strong {
   font-weight: 700;
   color: inherit;
+  background-color: transparent;
 }
 
 /* Horizontal rule */
@@ -181,4 +182,172 @@
 
 .dark .prose code {
   background-color: #1e293b;
+}
+
+/* ========== CRITICAL FIXES - Remove ALL backgrounds from video/news content ========== */
+/* These overrides ensure NO backgrounds appear on any text content */
+
+.video-content,
+.video-content *,
+.news-content,
+.news-content * {
+  background-color: transparent !important;
+  background-image: none !important;
+  background: none !important;
+}
+
+/* Specifically target strong and bold tags */
+.video-content strong,
+.video-content b,
+.news-content strong,
+.news-content b {
+  background-color: transparent !important;
+  background: none !important;
+  font-weight: 700;
+}
+
+/* Target all text elements */
+.video-content p,
+.video-content span,
+.video-content div,
+.video-content h1,
+.video-content h2,
+.video-content h3,
+.video-content h4,
+.video-content h5,
+.video-content h6,
+.video-content a,
+.video-content li,
+.news-content p,
+.news-content span,
+.news-content div,
+.news-content h1,
+.news-content h2,
+.news-content h3,
+.news-content h4,
+.news-content h5,
+.news-content h6,
+.news-content a,
+.news-content li {
+  background-color: transparent !important;
+  background: none !important;
+}
+
+/* Fix code and pre elements */
+.video-content code,
+.video-content pre,
+.news-content code,
+.news-content pre {
+  background-color: transparent !important;
+  background: none !important;
+}
+
+/* ========== TEXT STYLES - LARGER FONT SIZE ========== */
+.video-content,
+.news-content {
+  font-size: 1.0625rem !important; /* 17px - increased from 16px */
+  line-height: 1.75 !important;
+}
+
+/* ========== TEXT COLORS FOR LIGHT MODE - DARKER ========== */
+.video-content,
+.news-content {
+  color: #1e293b !important; /* Darker slate - was #334155 */
+}
+
+.video-content p,
+.video-content span,
+.video-content div,
+.video-content li,
+.news-content p,
+.news-content span,
+.news-content div,
+.news-content li {
+  color: #1e293b !important; /* Darker slate - was #334155 */
+}
+
+.video-content strong,
+.video-content b,
+.news-content strong,
+.news-content b {
+  color: #0f172a !important; /* Almost black - was #1e293b */
+  font-weight: 700;
+}
+
+.video-content h1,
+.video-content h2,
+.video-content h3,
+.video-content h4,
+.video-content h5,
+.video-content h6,
+.news-content h1,
+.news-content h2,
+.news-content h3,
+.news-content h4,
+.news-content h5,
+.news-content h6 {
+  color: #0a0f1a !important; /* Darkest - was #0f172a */
+}
+
+.video-content a,
+.news-content a {
+  color: #ff2b2b !important;
+}
+
+/* ========== TEXT COLORS FOR DARK MODE - LIGHTER COLORS ========== */
+.dark .video-content,
+.dark .news-content {
+  color: #e2e8f0 !important; /* Lighter - was #cbd5e1 */
+}
+
+.dark .video-content p,
+.dark .video-content span,
+.dark .video-content div,
+.dark .video-content li,
+.dark .news-content p,
+.dark .news-content span,
+.dark .news-content div,
+.dark .news-content li {
+  color: #e2e8f0 !important; /* Lighter - was #cbd5e1 */
+}
+
+.dark .video-content strong,
+.dark .video-content b,
+.dark .news-content strong,
+.dark .news-content b {
+  color: #ffffff !important; /* Pure white - was #f8fafc */
+  font-weight: 700;
+}
+
+.dark .video-content h1,
+.dark .video-content h2,
+.dark .video-content h3,
+.dark .video-content h4,
+.dark .video-content h5,
+.dark .video-content h6,
+.dark .news-content h1,
+.dark .news-content h2,
+.dark .news-content h3,
+.dark .news-content h4,
+.dark .news-content h5,
+.dark .news-content h6 {
+  color: #ffffff !important;
+}
+
+.dark .video-content a,
+.dark .news-content a {
+  color: #ff8888 !important; /* Lighter red - was #ff6b6b */
+}
+
+/* Hindi text support for content with larger font */
+.video-content p:lang(hi),
+.video-content li:lang(hi),
+.video-content div:lang(hi),
+.news-content p:lang(hi),
+.news-content li:lang(hi),
+.news-content div:lang(hi) {
+  font-family: 'Mukta', sans-serif;
+  font-weight: 500;
+  line-height: 1.75 !important;
+  font-size: 1.125rem !important; /* 17px - consistent with English */
 }
