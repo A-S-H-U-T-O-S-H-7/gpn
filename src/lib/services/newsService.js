@@ -11,6 +11,7 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   serverTimestamp,
   increment,
   writeBatch
@@ -20,6 +21,39 @@ import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLog
 
 const NEWS_COLLECTION = 'news';
 const ITEMS_PER_PAGE = 10;
+
+// Helper Functions
+function getTimeAgo(date) {
+  if (!date) return 'Recently';
+  const seconds = Math.floor((new Date() - date) / 1000);
+  const intervals = {
+    year: 31536000, 
+    month: 2592000, 
+    week: 604800, 
+    day: 86400, 
+    hour: 3600, 
+    minute: 60
+  };
+  
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      if (unit === 'day' && interval === 1) return 'Yesterday';
+      if (unit === 'day') return `${interval} days ago`;
+      if (unit === 'hour') return `${interval} hour${interval > 1 ? 's' : ''} ago`;
+      if (unit === 'minute') return `${interval} minute${interval > 1 ? 's' : ''} ago`;
+      return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
+    }
+  }
+  return 'Just now';
+}
+
+function formatViews(views) {
+  if (!views) return '0';
+  if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
+  if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
+  return views.toString();
+}
 
 // Generate slug from title
 export const generateSlug = (title) => {
@@ -73,18 +107,17 @@ const deleteImage = async (imageUrl) => {
   }
 };
 
-// Set news as hero (removes hero from other news and videos)
+// Set news as hero (removes hero from other news)
 const setNewsAsHero = async (newsId, adminData) => {
   try {
     const batch = writeBatch(db);
     
-    // Remove hero flag from all news ONLY (not videos)
+    // Remove hero flag from all news
     const newsQuery = query(collection(db, NEWS_COLLECTION), where('isHero', '==', true));
     const newsSnapshot = await getDocs(newsQuery);
     newsSnapshot.forEach(doc => {
       batch.update(doc.ref, { isHero: false });
     });
-    
     
     // Set hero flag on the selected news
     const newsRef = doc(db, NEWS_COLLECTION, newsId);
@@ -135,7 +168,7 @@ export const createNews = async (newsData, imageFile, adminData) => {
       isBreaking: newsData.isBreaking || false,
       isEditorPick: newsData.isEditorPick || false,
       isTrending: newsData.isTrending || false,
-      isHero: newsData.isHero || false,  // ← ADD THIS
+      isHero: newsData.isHero || false,
       editorPickOrder: newsData.isEditorPick ? (newsData.editorPickOrder || 0) : 0,
       views: 0,
       createdAt: serverTimestamp(),
@@ -143,7 +176,7 @@ export const createNews = async (newsData, imageFile, adminData) => {
       publishedAt: newsData.status === 'published' ? serverTimestamp() : null,
     });
     
-    // If this news is marked as hero, set it as hero (removes from others)
+    // If this news is marked as hero, set it as hero
     if (newsData.isHero && newsRef.id) {
       await setNewsAsHero(newsRef.id, adminData);
     }
@@ -248,7 +281,7 @@ export const updateNews = async (newsId, newsData, imageFile, existingImageUrl, 
       isBreaking: newsData.isBreaking || false,
       isEditorPick: newsData.isEditorPick || false,
       isTrending: newsData.isTrending || false,
-      isHero: newsData.isHero || false,  // ← ADD THIS
+      isHero: newsData.isHero || false,
       editorPickOrder: newsData.isEditorPick ? (newsData.editorPickOrder || 0) : 0,
       updatedAt: serverTimestamp(),
     };
@@ -263,7 +296,7 @@ export const updateNews = async (newsId, newsData, imageFile, existingImageUrl, 
     
     await updateDoc(newsRef, updateData);
     
-    // If this news is marked as hero, set it as hero (removes from others)
+    // If this news is marked as hero, set it as hero
     if (newsData.isHero && newsId) {
       await setNewsAsHero(newsId, adminData);
     }
@@ -346,7 +379,7 @@ export const getNewsById = async (newsId) => {
         isBreaking: data.isBreaking || false,
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
-        isHero: data.isHero || false,  // ← ADD THIS
+        isHero: data.isHero || false,
         editorPickOrder: data.editorPickOrder || 0,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
@@ -360,7 +393,7 @@ export const getNewsById = async (newsId) => {
   }
 };
 
-// Get all news
+// Get all news (for admin panel)
 export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', typeFilter = 'all') => {
   try {
     const newsRef = collection(db, NEWS_COLLECTION);
@@ -388,7 +421,7 @@ export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', t
         isBreaking: data.isBreaking || false,
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
-        isHero: data.isHero || false,  // ← ADD THIS
+        isHero: data.isHero || false,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -403,7 +436,7 @@ export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', t
         news = news.filter(item => item.isTrending === true);
       } else if (typeFilter === 'editor_pick') {
         news = news.filter(item => item.isEditorPick === true);
-      } else if (typeFilter === 'hero') {  // ← ADD THIS
+      } else if (typeFilter === 'hero') {
         news = news.filter(item => item.isHero === true);
       }
     }
@@ -433,21 +466,138 @@ export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', t
   }
 };
 
-// Increment news view count
-export const incrementNewsView = async (newsId) => {
+// Get latest news for homepage (with pagination and filtering)
+export const getLatestNews = async (page = 1, itemsPerPage = 20, filter = 'all') => {
   try {
-    const newsRef = doc(db, NEWS_COLLECTION, newsId);
-    await updateDoc(newsRef, {
-      views: increment(1)
+    const newsRef = collection(db, NEWS_COLLECTION);
+    const constraints = [
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc'),
+      limit(itemsPerPage)
+    ];
+    
+    const q = query(newsRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    let news = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const newsItem = {
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        excerpt: data.excerpt || '',
+        content: data.content || '',
+        image: data.image || null,
+        category: data.category || '',
+        views: data.views || 0,
+        date: data.createdAt?.toDate() || new Date(),
+        isBreaking: data.isBreaking || false,
+        isTrending: data.isTrending || false,
+        isEditorPick: data.isEditorPick || false,
+        isHero: data.isHero || false,
+      };
+      news.push(newsItem);
     });
-    return { success: true };
+    
+    // Apply filter
+    if (filter !== 'all') {
+      if (filter === 'breaking') {
+        news = news.filter(item => item.isBreaking === true);
+      } else if (filter === 'trending') {
+        news = news.filter(item => item.isTrending === true);
+      } else if (filter === 'editor') {
+        news = news.filter(item => item.isEditorPick === true);
+      }
+    }
+    
+    // Format date and views for display
+    const formattedNews = news.map(item => ({
+      ...item,
+      formattedDate: getTimeAgo(item.date),
+      formattedViews: formatViews(item.views),
+      readTime: `${Math.ceil((item.excerpt?.length || 200) / 600)} min read`
+    }));
+    
+    return { 
+      success: true, 
+      news: formattedNews, 
+      hasMore: news.length === itemsPerPage,
+      lastVisible: snapshot.docs[snapshot.docs.length - 1] || null
+    };
   } catch (error) {
-    console.error('Error incrementing view:', error);
-    return { success: false, error: error.message };
+    console.error('Error getting latest news:', error);
+    return { success: false, news: [], hasMore: false };
   }
 };
 
-// Get news by slug
+// Get more news (for load more functionality with filtering)
+export const getMoreNews = async (lastDoc, itemsPerPage = 10, filter = 'all') => {
+  try {
+    const newsRef = collection(db, NEWS_COLLECTION);
+    const q = query(
+      newsRef,
+      where('status', '==', 'published'),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastDoc),
+      limit(itemsPerPage)
+    );
+    const snapshot = await getDocs(q);
+    
+    let news = [];
+    let lastVisible = null;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const newsItem = {
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        excerpt: data.excerpt || '',
+        image: data.image || null,
+        category: data.category || '',
+        views: data.views || 0,
+        date: data.createdAt?.toDate() || new Date(),
+        isBreaking: data.isBreaking || false,
+        isTrending: data.isTrending || false,
+        isEditorPick: data.isEditorPick || false,
+        isHero: data.isHero || false,
+      };
+      news.push(newsItem);
+      lastVisible = doc;
+    });
+    
+    // Apply filter
+    if (filter !== 'all') {
+      if (filter === 'breaking') {
+        news = news.filter(item => item.isBreaking === true);
+      } else if (filter === 'trending') {
+        news = news.filter(item => item.isTrending === true);
+      } else if (filter === 'editor') {
+        news = news.filter(item => item.isEditorPick === true);
+      }
+    }
+    
+    const formattedNews = news.map(item => ({
+      ...item,
+      formattedDate: getTimeAgo(item.date),
+      formattedViews: formatViews(item.views),
+      readTime: `${Math.ceil((item.excerpt?.length || 200) / 600)} min read`
+    }));
+    
+    return { 
+      success: true, 
+      news: formattedNews, 
+      lastVisible, 
+      hasMore: news.length === itemsPerPage 
+    };
+  } catch (error) {
+    console.error('Error getting more news:', error);
+    return { success: false, news: [], hasMore: false };
+  }
+};
+
+// Get news by slug (for public viewing)
 export const getNewsBySlug = async (slug) => {
   try {
     const newsRef = collection(db, NEWS_COLLECTION);
@@ -486,7 +636,7 @@ export const getNewsBySlug = async (slug) => {
 export const getNewsByCategory = async (categorySlug, page = 1, itemsPerPage = 12) => {
   try {
     const newsRef = collection(db, NEWS_COLLECTION);
-    let constraints = [
+    const constraints = [
       where('status', '==', 'published'),
       where('category', '==', categorySlug),
       orderBy('createdAt', 'desc'),
@@ -518,6 +668,7 @@ export const getNewsByCategory = async (categorySlug, page = 1, itemsPerPage = 1
   }
 };
 
+// Get breaking news
 export const getBreakingNews = async (maxlimit = 10) => {
   try {
     const newsRef = collection(db, NEWS_COLLECTION);
@@ -545,5 +696,19 @@ export const getBreakingNews = async (maxlimit = 10) => {
   } catch (error) {
     console.error('Error getting breaking news:', error);
     return { success: false, error: error.message, news: [] };
+  }
+};
+
+// Increment news view count
+export const incrementNewsView = async (newsId) => {
+  try {
+    const newsRef = doc(db, NEWS_COLLECTION, newsId);
+    await updateDoc(newsRef, {
+      views: increment(1)
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error incrementing view:', error);
+    return { success: false, error: error.message };
   }
 };

@@ -6,6 +6,7 @@ import HeroSection from "@/components/sections/HeroSection";
 import HoroscopeSection from "@/components/sections/HoroscopeSection";
 import LatestVideosSection from "@/components/sections/LatestVideosSection";
 import MyAstroBanner from "@/components/sections/MyAstroBanner";
+import LatestNewsSection from "@/components/sections/news-section/LatestNewsSection";
 import NewsletterSection from "@/components/sections/NewsletterSection";
 import TrendingSection from "@/components/sections/TrendingSection";
 
@@ -18,6 +19,7 @@ export default function HomePage() {
       <CategorySection/>
       <AtdMoneyBanner/>
       <LatestVideosSection/>
+      <LatestNewsSection />
       <EditorsAndWatchedGrid/>
       <HoroscopeSection/>
       <MyAstroBanner/>
