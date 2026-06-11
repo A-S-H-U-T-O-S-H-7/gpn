@@ -15,6 +15,8 @@ const generateSlug = (title) => {
 };
 
 export default function VideoForm({ formData, errors, onInputChange, isDark }) {
+  const [tagsInput, setTagsInput] = useState(formData.tags?.join(', ') || '');
+
   const handleTitleChange = (value) => {
     onInputChange("title", value);
     if (!formData.manualSlug) {
@@ -28,6 +30,14 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
   const handleSlugChange = (value) => {
     onInputChange("url", value);
     onInputChange("manualSlug", true);
+  };
+
+  const handleTagsChange = (e) => {
+    const value = e.target.value;
+    setTagsInput(value);
+    // Convert comma-separated string to array
+    const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    onInputChange("tags", tagsArray);
   };
 
   return (
@@ -112,48 +122,16 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
                   ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
                   : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
             }`}
-            placeholder="https://www.youtube.com/watch?v=..."
+            placeholder="https://www.youtube.com/watch?v=... or https://youtube.com/shorts/..."
           />
           {errors.youtubeUrl && <p className="text-red-500 text-sm mt-1">{errors.youtubeUrl}</p>}
           <p className={`text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-            Enter the full YouTube URL (e.g., https://www.youtube.com/watch?v=abc123)
+            Supports regular YouTube videos AND YouTube Shorts URLs
           </p>
         </div>
       </div>
 
-      {/* Duration Field */}
-      <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
-        <div className="flex items-center gap-2 mb-4">
-          <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
-            <Clock className={`w-4 h-4 text-red`} />
-          </div>
-          <h2 className={`text-lg font-semibold ${isDark ? "text-gray-50" : "text-gray-950"}`}>
-            Video Duration
-          </h2>
-        </div>
-
-        <div>
-          <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-            Duration (optional)
-          </label>
-          <input
-            type="text"
-            value={formData.duration}
-            onChange={(e) => onInputChange("duration", e.target.value)}
-            className={`w-full px-3 py-2 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-red/20 focus:outline-none ${
-              isDark
-                ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
-                : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
-            }`}
-            placeholder="12:34"
-          />
-          <p className={`text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-            Enter video duration in MM:SS format (e.g., 05:30 for 5 minutes 30 seconds)
-          </p>
-        </div>
-      </div>
-
-      {/* Video Description - UPDATED RichTextEditor with more options */}
+      {/* Video Description */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
@@ -174,7 +152,7 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
         />
       </div>
 
-      {/* Tags Section */}
+      {/* Tags Section - FIXED */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
@@ -191,12 +169,8 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
           </label>
           <input
             type="text"
-            value={formData.tags ? formData.tags.join(', ') : ''}
-            onChange={(e) => {
-              const tagsString = e.target.value;
-              const tagsArray = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
-              onInputChange("tags", tagsArray);
-            }}
+            value={tagsInput}
+            onChange={handleTagsChange}
             className={`w-full px-3 py-2 rounded-lg border-2 transition-all duration-200 focus:ring-2 focus:ring-red/20 focus:outline-none ${
               isDark
                 ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
@@ -210,7 +184,7 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
         </div>
       </div>
 
-      {/* SEO Settings - ADDED META KEYWORDS */}
+      {/* SEO Settings */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
@@ -262,7 +236,6 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
             </p>
           </div>
 
-          {/* ADDED: Meta Keywords */}
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
               <div className="flex items-center gap-1">

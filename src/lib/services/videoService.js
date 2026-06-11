@@ -34,6 +34,21 @@ export const generateSlug = (title) => {
 
 // Extract YouTube ID from URL
 export const getYouTubeId = (url) => {
+  if (!url) return null;
+  
+  // Handle youtu.be format
+  if (url.includes('youtu.be/')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    return match ? match[1] : null;
+  }
+  
+  // Handle youtube.com/shorts/ format
+  if (url.includes('/shorts/')) {
+    const match = url.match(/\/shorts\/([^?&]+)/);
+    return match ? match[1] : null;
+  }
+  
+  // Handle standard youtube.com/watch?v= format
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
