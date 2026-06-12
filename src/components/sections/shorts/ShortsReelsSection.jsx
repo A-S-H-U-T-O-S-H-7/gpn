@@ -109,18 +109,20 @@ export default function ShortsReelsSection() {
     };
   }, [shorts]);
 
-  // Scroll navigation
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
-    }
-  };
+  // Scroll navigation - updated for 240px card width
+const scrollLeft = () => {
+  if (scrollContainerRef.current) {
+    scrollContainerRef.current.scrollBy({ left: -280, behavior: 'smooth' }); // Changed from -320 to -260
+  }
+};
 
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
-    }
-  };
+const scrollRight = () => {
+  if (scrollContainerRef.current) {
+    scrollContainerRef.current.scrollBy({ left: 280, behavior: 'smooth' }); // Changed from 320 to 260
+  }
+};
+
+ 
 
   const handlePlayShort = (short) => {
     setSelectedShort(short);
@@ -148,7 +150,7 @@ export default function ShortsReelsSection() {
             <div className="flex items-center gap-3">
               <div className="w-1 h-8 bg-purple-600 rounded-full" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Shorts & Reels</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Let's Catch Up</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Loading...</p>
               </div>
             </div>
@@ -181,7 +183,7 @@ export default function ShortsReelsSection() {
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-purple-600" />
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Shorts & Reels
+                    Let's Catch Up
                   </h2>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

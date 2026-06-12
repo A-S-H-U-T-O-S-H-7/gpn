@@ -76,7 +76,7 @@ export default function ShortsCarousel() {
         {/* Section Title */}
         <div className="flex items-center gap-2 mb-4">
           <div className="w-1 h-6 bg-purple-600 rounded-full" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Shorts & Reels</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Let's Catch Up</h3>
         </div>
 
         {/* Carousel Container */}
@@ -89,7 +89,7 @@ export default function ShortsCarousel() {
           <div className="flex justify-center">
             {/* Card */}
             <div 
-              className="w-64 cursor-pointer transform transition-all duration-300 hover:scale-105"
+              className="w-58 cursor-pointer transform transition-all duration-300 hover:scale-105"
               onClick={() => handleCardClick(currentShort)}
             >
               <div className="relative rounded-xl overflow-hidden shadow-lg">

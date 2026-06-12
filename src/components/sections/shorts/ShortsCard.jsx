@@ -8,7 +8,6 @@ export default function ShortsCard({ short, isDark, onPlay, isVisible }) {
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
-  const observerRef = useRef(null);
 
   // Auto-play when visible in viewport
   useEffect(() => {
@@ -56,14 +55,14 @@ export default function ShortsCard({ short, isDark, onPlay, isVisible }) {
   return (
     <div
       className="relative flex-shrink-0 cursor-pointer group"
-      style={{ width: "280px" }}
+      style={{ width: "260px" }} 
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     >
       <div className="relative rounded-xl overflow-hidden shadow-lg transition-all duration-300 group-hover:shadow-2xl group-hover:-translate-y-1">
-        {/* Video Container - 4:5 Aspect Ratio */}
-        <div className="relative" style={{ aspectRatio: "4/5" }}>
+        {/* Video Container - Taller aspect ratio (9:16 for shorts feel) */}
+        <div className="relative" style={{ aspectRatio: "9/16" }}> {/* Changed from 4/5 to 9/16 for taller feel */}
           {/* Thumbnail / Video */}
           {short.videoId && (
             <iframe
@@ -77,7 +76,7 @@ export default function ShortsCard({ short, isDark, onPlay, isVisible }) {
           )}
 
           {/* Overlay Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
           {/* Play Button Overlay */}
           {!isPlaying && (
@@ -104,7 +103,7 @@ export default function ShortsCard({ short, isDark, onPlay, isVisible }) {
 
           {/* Duration Badge */}
           {short.duration && (
-            <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-md">
+            <div className="absolute bottom-2 left-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-md">
               {short.duration}
             </div>
           )}
@@ -119,16 +118,16 @@ export default function ShortsCard({ short, isDark, onPlay, isVisible }) {
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
-          <h3 className="text-white text-sm font-semibold line-clamp-2 mb-1">
+          <h3 className="text-white text-xs font-semibold line-clamp-2 mb-1">
             {short.title}
           </h3>
-          <div className="flex items-center gap-3 text-white/70 text-[10px]">
+          <div className="flex items-center gap-3 text-white/70 text-[9px]">
             <span className="flex items-center gap-1">
-              <Eye className="w-2.5 h-2.5" />
+              <Eye className="w-2 h-2" />
               {short.formattedViews}
             </span>
             <span className="flex items-center gap-1">
-              <Calendar className="w-2.5 h-2.5" />
+              <Calendar className="w-2 h-2" />
               {short.formattedDate}
             </span>
           </div>
