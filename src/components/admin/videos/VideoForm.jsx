@@ -147,11 +147,11 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
               Video Description
             </h2>
           </div>
-          <FormatDescriptionButton
+          {/* <FormatDescriptionButton
             content={formData.description}
             onFormatted={onInputChange}
             size="sm"
-          />
+          /> */}
         </div>
 
         <RichTextEditor
@@ -175,13 +175,13 @@ export default function VideoForm({ formData, errors, onInputChange, isDark }) {
               Tags
             </h2>
           </div>
-          <AIGenerateButton
+          {/* <AIGenerateButton
             content={formData.description || formData.title}
             onGenerated={onInputChange}
             type="tags"
             label="Generate Tags"
             size="sm"
-          />
+          /> */}
         </div>
 
         <div>
