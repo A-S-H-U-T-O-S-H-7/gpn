@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Calendar, Image as ImageIcon, Upload, X, Save, Zap, Star, TrendingUp, FolderOpen, Tag } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { getActiveCategories } from "@/lib/services/categoryService";
+import AIGenerateButton from "@/components/admin/AIGenerateButton";
 
 // Toggle Switch Component
 const ToggleSwitch = ({ enabled, onChange, label, icon: Icon, isDark }) => {
@@ -38,6 +39,7 @@ const ToggleSwitch = ({ enabled, onChange, label, icon: Icon, isDark }) => {
 export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoading, isDark }) {
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [tagsInput, setTagsInput] = useState(formData.tags?.join(', ') || '');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -54,6 +56,13 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
     };
     fetchCategories();
   }, []);
+
+  // Update tagsInput when formData.tags changes from AI
+  useEffect(() => {
+    if (formData.tags && Array.isArray(formData.tags)) {
+      setTagsInput(formData.tags.join(', '));
+    }
+  }, [formData.tags]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -83,7 +92,7 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
 
   const handleTagsChange = (e) => {
     const value = e.target.value;
-    onInputChange('tagsInput', value);
+    setTagsInput(value);
     const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
     onInputChange('tags', tagsArray);
   };
@@ -120,7 +129,7 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
         </select>
       </div>
 
-      {/* Category & Tags */}
+      {/* Category & Tags with AI Tags Generation */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
@@ -162,23 +171,35 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-              Tags (comma separated)
-            </label>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <label className={`block text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                Tags (comma separated)
+              </label>
+              {/* <AIGenerateButton
+                content={formData.content || formData.title}
+                onGenerated={onInputChange}
+                type="tags"
+                label="Generate Tags"
+                size="sm"
+              /> */}
+            </div>
             <div className="relative">
               <Tag className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
               <input
                 type="text"
-                value={formData.tagsInput || formData.tags?.join(', ') || ''}
+                value={tagsInput}
                 onChange={handleTagsChange}
                 className={`w-full pl-10 pr-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none ${
                   isDark
                     ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
                     : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
                 }`}
-                placeholder="politics, election, india"
+                placeholder="politics, election, india, news"
               />
             </div>
+            <p className={`text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+              Enter tags separated by commas (e.g., politics, india, election)
+            </p>
           </div>
         </div>
       </div>
@@ -219,23 +240,22 @@ export default function NewsSidebar({ formData, onInputChange, onSubmit, isLoadi
             isDark={isDark}
           />
 
-           {/* NEW: Hero Toggle */}
-  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-    <ToggleSwitch
-      enabled={formData.isHero}
-      onChange={(val) => onInputChange('isHero', val)}
-      label="⭐ Hero Section Feature"
-      icon={Star}
-      isDark={isDark}
-    />
-    {formData.isHero && (
-      <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-        <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          ⚠️ This news will appear as the Hero Story on homepage. Only one news can be hero at a time.
-        </p>
-      </div>
-    )}
-  </div>
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <ToggleSwitch
+              enabled={formData.isHero}
+              onChange={(val) => onInputChange('isHero', val)}
+              label="⭐ Hero Section Feature"
+              icon={Star}
+              isDark={isDark}
+            />
+            {formData.isHero && (
+              <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                  ⚠️ This news will appear as the Hero Story on homepage. Only one news can be hero at a time.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
