@@ -10,6 +10,7 @@ export default function BreakingNewsTicker() {
   const [loading, setLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const tickerRef = useRef(null);
+  const [animationDuration, setAnimationDuration] = useState(40); // Default slower speed
 
   useEffect(() => {
     const fetchBreakingNews = async () => {
@@ -27,6 +28,16 @@ export default function BreakingNewsTicker() {
     fetchBreakingNews();
   }, []);
 
+  // Calculate animation duration based on number of news items
+  useEffect(() => {
+    if (breakingNews.length > 0) {
+      // Each news item takes about 3-4 seconds to read comfortably
+      // Slower speed = longer duration
+      const baseDuration = breakingNews.length * 3.5; // 3.5 seconds per item
+      setAnimationDuration(Math.max(baseDuration, 40)); // Minimum 40 seconds
+    }
+  }, [breakingNews]);
+
   if (loading || breakingNews.length === 0) {
     return null;
   }
@@ -37,10 +48,10 @@ export default function BreakingNewsTicker() {
         key={duplicate ? `${news.id}-duplicate` : news.id}
         href={`/news/${news.slug}`}
         tabIndex={duplicate ? -1 : undefined}
-        className="inline-flex items-center gap-1.5 sm:gap-2 py-2 group"
+        className="inline-flex items-center gap-1.5 sm:gap-2 py-2 group hover:bg-red-700/50 px-2 rounded-lg transition-colors"
       >
         <span className="text-white/60 text-xs flex-shrink-0">{"\u2022"}</span>
-        <span className="text-white text-sm md:text-base font-medium hover:text-yellow-200 transition-colors">
+        <span className="text-white text-sm md:text-base font-medium hover:text-yellow-200 transition-colors whitespace-normal">
           {news.title}
         </span>
         <ChevronRight className="w-3 h-3 text-white/50 group-hover:text-white transition-colors flex-shrink-0" />
@@ -50,7 +61,7 @@ export default function BreakingNewsTicker() {
   return (
     <div className="w-full bg-gradient-to-r from-red-600 to-red-700 border-b border-red-800">
       <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
-        <div className="flex items-center h-10 min-w-0">
+        <div className="flex items-center h-12 min-w-0">
           {/* Left Side - Fixed Breaking News Label */}
           <div className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 pr-2 md:pr-4 border-r border-red-400/50 z-10 bg-gradient-to-r from-red-600 to-red-700">
             <div className="flex items-center gap-1.5">
@@ -74,7 +85,7 @@ export default function BreakingNewsTicker() {
               ref={tickerRef}
               className="inline-flex w-max whitespace-nowrap"
               style={{
-                animation: "marquee 24s linear infinite",
+                animation: `marquee ${animationDuration}s linear infinite`,
                 animationPlayState: isPaused ? "paused" : "running",
               }}
             >

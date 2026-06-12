@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Save, Zap, Star, TrendingUp, FolderOpen, Tag, Clock } from "lucide-react";
+import { Calendar, Save, Star, TrendingUp, FolderOpen, Tag, Clock, Video } from "lucide-react";
 import { FaYoutube } from "react-icons/fa";
-import { toast } from "react-hot-toast";
 import { getActiveCategories } from "@/lib/services/categoryService";
 
 // Toggle Switch Component
@@ -55,13 +54,6 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
     };
     fetchCategories();
   }, []);
-
-  const handleTagsChange = (e) => {
-    const value = e.target.value;
-    onInputChange('tagsInput', value);
-    const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-    onInputChange('tags', tagsArray);
-  };
 
   const getButtonText = () => {
     if (isLoading) return formData.status === 'published' ? "Publishing..." : "Saving...";
@@ -117,14 +109,48 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
         </select>
       </div>
 
-      {/* Category & Tags */}
+      {/* Video Type Selection */}
+      <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
+        <div className="flex items-center gap-2 mb-4">
+          <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
+            <Video className={`w-4 h-4 text-red`} />
+          </div>
+          <h3 className={`text-lg font-semibold ${isDark ? "text-gray-50" : "text-gray-950"}`}>
+            Video Type
+          </h3>
+        </div>
+
+        <select
+          value={formData.videoType || 'standard'}
+          onChange={(e) => onInputChange('videoType', e.target.value)}
+          className={`w-full px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none cursor-pointer ${
+            isDark
+              ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
+              : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
+          }`}
+        >
+          <option value="standard">Standard Video (16:9)</option>
+          <option value="short">Short Video (4:5) - Instagram Style</option>
+          <option value="reel">Reel (4:5) - Instagram Style</option>
+        </select>
+        
+        {(formData.videoType === 'short' || formData.videoType === 'reel') && (
+          <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              📱 This video will appear in the Shorts & Reels section
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Category & Duration */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
             <FolderOpen className={`w-4 h-4 text-red`} />
           </div>
           <h3 className={`text-lg font-semibold ${isDark ? "text-gray-50" : "text-gray-950"}`}>
-            Category & Tags
+            Category & Duration
           </h3>
         </div>
 
@@ -160,26 +186,6 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
 
           <div>
             <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-              Tags (comma separated)
-            </label>
-            <div className="relative">
-              <Tag className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
-              <input
-                type="text"
-                value={formData.tagsInput || formData.tags?.join(', ') || ''}
-                onChange={handleTagsChange}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none ${
-                  isDark
-                    ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
-                    : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
-                }`}
-                placeholder="technology, tutorial, review"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
               Duration (optional)
             </label>
             <div className="relative">
@@ -200,7 +206,7 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
         </div>
       </div>
 
-      {/* Featured Options - All Three Toggles */}
+      {/* Featured Options */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
           <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
@@ -237,21 +243,21 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
           />
 
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-    <ToggleSwitch
-      enabled={formData.isHero}
-      onChange={(val) => onInputChange('isHero', val)}
-      label="⭐ Hero Section Feature"
-      icon={Star}
-      isDark={isDark}
-    />
-    {formData.isHero && (
-      <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-        <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          ⚠️ This video will appear as the Hero Video on homepage. Only one video can be hero at a time.
-        </p>
-      </div>
-    )}
-  </div>
+            <ToggleSwitch
+              enabled={formData.isHero}
+              onChange={(val) => onInputChange('isHero', val)}
+              label="⭐ Hero Section Feature"
+              icon={Star}
+              isDark={isDark}
+            />
+            {formData.isHero && (
+              <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                  ⚠️ This video will appear as the Hero Video on homepage
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

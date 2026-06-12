@@ -9,6 +9,7 @@ import MyAstroBanner from "@/components/sections/MyAstroBanner";
 import LatestNewsSection from "@/components/sections/news-section/LatestNewsSection";
 import NewsletterSection from "@/components/sections/NewsletterSection";
 import TrendingSection from "@/components/sections/TrendingSection";
+import ShortsWrapper from "@/components/sections/shorts/ShortsWrapper";
 
 export default function HomePage() {
   return (
@@ -17,6 +18,9 @@ export default function HomePage() {
       <HeroSection/>
       <TrendingSection/>
       <CategorySection/>
+      
+      <ShortsWrapper />
+      
       <AtdMoneyBanner/>
       <LatestVideosSection/>
       <LatestNewsSection />
@@ -24,7 +28,6 @@ export default function HomePage() {
       <HoroscopeSection/>
       <MyAstroBanner/>
       <NewsletterSection/>
-      
     </div>
   );
 }

@@ -351,3 +351,79 @@
   line-height: 1.75 !important;
   font-size: 1.125rem !important; /* 17px - consistent with English */
 }
+
+/* ========== ANIMATIONS FOR MODAL & SHORTS SECTION ========== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes slide-in-from-top-2 {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-from-top-2 {
+  animation: slide-in-from-top-2 0.2s ease-out;
+}
+
+@keyframes zoom-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.zoom-in {
+  animation: zoom-in 0.2s ease-out;
+}
+
+/* ========== SCROLL BEHAVIOR ========== */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+
+/* Optional: Custom scrollbar for horizontal scroll (looks better) */
+.horizontal-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #ff2b2b;
+}
+
+.dark .horizontal-scroll::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark .horizontal-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+}

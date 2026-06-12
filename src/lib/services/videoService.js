@@ -115,10 +115,11 @@ export const createVideo = async (videoData, adminData) => {
       metadesc: videoData.metadesc || videoData.description?.substring(0, 160) || '',
       metakeywords: videoData.metakeywords || '',
       status: videoData.status,
+      videoType: videoData.videoType || 'standard', // NEW: standard, short, reel
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
-      isHero: videoData.isHero || false,  // ← ADD THIS
+      isHero: videoData.isHero || false,
       views: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -135,7 +136,7 @@ export const createVideo = async (videoData, adminData) => {
       entityType: ActivityEntityTypes.VIDEO,
       entityId: videoRef.id,
       entityTitle: videoData.title,
-      details: `Created video: ${videoData.title}`,
+      details: `Created video: ${videoData.title} (Type: ${videoData.videoType || 'standard'})`,
       adminId: adminData.id,
       adminName: adminData.name,
       adminRole: adminData.role,
@@ -147,6 +148,7 @@ export const createVideo = async (videoData, adminData) => {
     return { success: false, error: error.message };
   }
 };
+
 
 // Update video
 export const updateVideo = async (videoId, videoData, oldVideoData, adminData) => {
@@ -168,10 +170,11 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       metadesc: videoData.metadesc || videoData.description?.substring(0, 160) || '',
       metakeywords: videoData.metakeywords || '',
       status: videoData.status,
+      videoType: videoData.videoType || 'standard', 
       isFeatured: videoData.isFeatured || false,
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
-      isHero: videoData.isHero || false,  
+      isHero: videoData.isHero || false,
       updatedAt: serverTimestamp(),
     };
     
@@ -186,7 +189,21 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       await setVideoAsHero(videoId, adminData);
     }
     
-    // Log specific changes
+    // Log video type change if it changed
+    if (oldVideoData.videoType !== videoData.videoType) {
+      await logActivity({
+        action: ActivityActions.UPDATE,
+        entityType: ActivityEntityTypes.VIDEO,
+        entityId: videoId,
+        entityTitle: videoData.title,
+        details: `Changed video type from ${oldVideoData.videoType} to ${videoData.videoType}`,
+        adminId: adminData.id,
+        adminName: adminData.name,
+        adminRole: adminData.role,
+      });
+    }
+    
+    // Log other changes...
     if (oldVideoData.isFeatured !== videoData.isFeatured) {
       await logActivity({
         action: videoData.isFeatured ? ActivityActions.EDITOR_PICK_ON : ActivityActions.EDITOR_PICK_OFF,
@@ -257,6 +274,87 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
   }
 };
 
+// Get latest shorts/reels (with pagination) - FIXED
+export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    let constraints = [
+      where('status', '==', 'published'),
+      where('videoType', 'in', ['short', 'reel']),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    ];
+    
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    
+    const q = query(videosRef, ...constraints);
+    const snapshot = await getDocs(q);
+    
+    const shorts = [];
+    let lastVisible = null;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      shorts.push({
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        videoId: data.videoId || '',
+        youtubeUrl: data.youtubeUrl || '',
+        thumbnail: data.thumbnail || '',
+        duration: data.duration || '',
+        category: data.category || '',
+        views: data.views || 0,
+        videoType: data.videoType || 'short',
+        date: data.createdAt?.toDate() || new Date(),
+        publishedAt: data.publishedAt?.toDate() || null,
+      });
+      lastVisible = doc;
+    });
+    
+    // Format date and views for display
+    const formattedShorts = shorts.map(short => ({
+      ...short,
+      formattedDate: getTimeAgo(short.date),
+      formattedViews: formatViews(short.views),
+    }));
+    
+    return { 
+      success: true, 
+      shorts: formattedShorts, 
+      lastVisible,
+      hasMore: snapshot.docs.length === limitCount
+    };
+  } catch (error) {
+    console.error('Error getting latest shorts:', error);
+    return { success: false, shorts: [], hasMore: false };
+  }
+};
+
+// NEW: Get single short/reel by ID with next/prev navigation
+export const getShortsWithNavigation = async (currentId, allShorts) => {
+  try {
+    const currentIndex = allShorts.findIndex(short => short.id === currentId);
+    const prevShort = currentIndex > 0 ? allShorts[currentIndex - 1] : null;
+    const nextShort = currentIndex < allShorts.length - 1 ? allShorts[currentIndex + 1] : null;
+    
+    return {
+      success: true,
+      current: allShorts[currentIndex],
+      prev: prevShort,
+      next: nextShort,
+      currentIndex: currentIndex + 1,
+      total: allShorts.length
+    };
+  } catch (error) {
+    console.error('Error getting navigation:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+
 // Delete video
 export const deleteVideo = async (videoId, videoTitle, adminData) => {
   try {
@@ -309,10 +407,11 @@ export const getVideoById = async (videoId) => {
         metadesc: data.metadesc || '',
         metakeywords: data.metakeywords || '',
         status: data.status || 'draft',
+        videoType: data.videoType || 'standard', 
         isFeatured: data.isFeatured || false,
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
-        isHero: data.isHero || false,  // ← ADD THIS
+        isHero: data.isHero || false,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
