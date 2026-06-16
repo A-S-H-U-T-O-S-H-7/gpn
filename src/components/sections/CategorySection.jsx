@@ -25,7 +25,7 @@ export default function CategorySection() {
     fetchCategories();
   }, []);
 
-  // Auto-scroll effect (loop)
+  // Auto-scroll effect (loop) - Only when NOT in showAll mode
   const startAutoScroll = useCallback(() => {
     if (autoScrollInterval.current) clearInterval(autoScrollInterval.current);
     
@@ -67,7 +67,9 @@ export default function CategorySection() {
     }
   };
 
-  const displayedCategories = showAll ? categories : categories.slice(0, 6);
+  // When not in showAll mode, show ALL categories in horizontal scroll
+  // When in showAll mode, show ALL categories in grid view
+  const displayedCategories = categories; // Show ALL categories always
 
   const CategoryCard = ({ category }) => {
     const IconComponent = getIconComponent(category.icon);
@@ -102,7 +104,7 @@ export default function CategorySection() {
   if (loading) {
     return (
       <section className="py-8 bg-ghee dark:bg-slate-900/50">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-1 h-7 bg-red rounded-full"></div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Explore by Category</h2>
@@ -130,6 +132,9 @@ export default function CategorySection() {
             <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
               Explore by Category
             </h2>
+            <span className="px-2 py-1 bg-red/10 text-red text-xs font-semibold rounded-full">
+              {categories.length} Categories
+            </span>
           </div>
           <button
             onClick={() => {
@@ -143,13 +148,14 @@ export default function CategorySection() {
           </button>
         </div>
 
-        {/* Horizontal Scrollable View */}
+        {/* Horizontal Scrollable View - Shows ALL categories in scroll */}
         {!showAll && (
           <div 
             className="relative group"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
+            {/* Left Scroll Button */}
             <button
               onClick={() => scroll("left")}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors border border-gray-200 dark:border-gray-700"
@@ -157,18 +163,20 @@ export default function CategorySection() {
               <ChevronLeft className="w-4 h-4" />
             </button>
 
+            {/* Scroll Container - ALL categories here */}
             <div
               ref={scrollContainerRef}
               className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {displayedCategories.map((category) => (
+              {categories.map((category) => (
                 <div key={category.id} className="flex-shrink-0 w-64">
                   <CategoryCard category={category} />
                 </div>
               ))}
             </div>
 
+            {/* Right Scroll Button */}
             <button
               onClick={() => scroll("right")}
               className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden lg:group-hover:flex items-center justify-center w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-red hover:text-white transition-colors border border-gray-200 dark:border-gray-700"
@@ -178,14 +186,23 @@ export default function CategorySection() {
           </div>
         )}
 
-        {/* Grid View */}
+        {/* Grid View - Shows ALL categories in grid when "View All" is clicked */}
         {showAll && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {displayedCategories.map((category) => (
+            {categories.map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         )}
+
+        {/* Category Count Info */}
+        {/* {!showAll && categories.length > 8 && (
+          <div className="flex justify-center mt-4">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Scroll to see all {categories.length} categories →
+            </p>
+          </div>
+        )} */}
       </div>
     </section>
   );

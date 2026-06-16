@@ -10,7 +10,7 @@ export default function BreakingNewsTicker() {
   const [loading, setLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const tickerRef = useRef(null);
-  const [animationDuration, setAnimationDuration] = useState(40); // Default slower speed
+  const [animationDuration, setAnimationDuration] = useState(80); 
 
   useEffect(() => {
     const fetchBreakingNews = async () => {
@@ -31,10 +31,9 @@ export default function BreakingNewsTicker() {
   // Calculate animation duration based on number of news items
   useEffect(() => {
     if (breakingNews.length > 0) {
-      // Each news item takes about 3-4 seconds to read comfortably
-      // Slower speed = longer duration
-      const baseDuration = breakingNews.length * 3.5; // 3.5 seconds per item
-      setAnimationDuration(Math.max(baseDuration, 40)); // Minimum 40 seconds
+      
+      const baseDuration = breakingNews.length * 3.5; 
+      setAnimationDuration(Math.max(baseDuration, 80)); 
     }
   }, [breakingNews]);
 

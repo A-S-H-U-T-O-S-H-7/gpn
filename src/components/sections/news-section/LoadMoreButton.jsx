@@ -2,18 +2,12 @@
 
 import { ChevronDown } from "lucide-react";
 
-export default function LoadMoreButton({ onClick, loading }) {
+export default function SeeMoreButton({ onClick, loading }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-1.5">
-        {[0, 150, 300].map((delay) => (
-          <span
-            key={delay}
-            className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
-            style={{ animationDelay: `${delay}ms` }}
-          />
-        ))}
-        <span className="ml-2 text-sm text-slate-500">Loading more news...</span>
+      <div className="flex items-center gap-2 px-6 py-2.5">
+        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+        <span className="text-sm text-slate-500">Loading more articles...</span>
       </div>
     );
   }
@@ -32,7 +26,7 @@ export default function LoadMoreButton({ onClick, loading }) {
         transition-all duration-300
       "
     >
-      Load More Articles
+      See More Articles
       <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform duration-200" />
     </button>
   );
