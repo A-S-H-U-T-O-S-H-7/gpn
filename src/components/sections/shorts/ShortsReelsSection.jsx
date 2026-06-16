@@ -1,36 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Play, Eye, Calendar, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { getLatestShorts } from "@/lib/services/videoService";
-import ShortsCard from "./ShortsCard";
 import ShortsModal from "./ShortsModal";
-import ShortsNavigation from "./ShortsNavigation";
-import SkeletonNewsCard from "../news-section/SkeletonNewsCard";
+import Image from "next/image";
 
 export default function ShortsReelsSection() {
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [lastDoc, setLastDoc] = useState(null);
   const [selectedShort, setSelectedShort] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [visibleCards, setVisibleCards] = useState({});
-  
   const scrollContainerRef = useRef(null);
-  const loaderRef = useRef(null);
-  const observerRef = useRef(null);
 
-  // Fetch initial shorts
-  const fetchInitialShorts = async () => {
+  useEffect(() => {
+    fetchShorts();
+  }, []);
+
+  const fetchShorts = async () => {
     setLoading(true);
     try {
-      const result = await getLatestShorts(10);
+      const result = await getLatestShorts(20);
       if (result.success) {
         setShorts(result.shorts);
-        setHasMore(result.hasMore);
-        if (result.lastVisible) setLastDoc(result.lastVisible);
       }
     } catch (err) {
       console.error("Error fetching shorts:", err);
@@ -39,234 +31,166 @@ export default function ShortsReelsSection() {
     }
   };
 
-  // Load more shorts on scroll
-  const loadMoreShorts = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    try {
-      const result = await getLatestShorts(10, lastDoc);
-      if (result.success && result.shorts.length > 0) {
-        setShorts(prev => [...prev, ...result.shorts]);
-        setLastDoc(result.lastVisible);
-        setHasMore(result.hasMore);
-      } else {
-        setHasMore(false);
-      }
-    } catch (err) {
-      console.error("Error loading more shorts:", err);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMore, lastDoc]);
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    if (!loaderRef.current || !hasMore || loading || loadingMore) return;
-    
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          loadMoreShorts();
-        }
-      },
-      { threshold: 0.1, rootMargin: "100px" }
-    );
-    
-    observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading, loadMoreShorts]);
-
-  // Intersection Observer for auto-play videos
-  useEffect(() => {
-    if (!scrollContainerRef.current) return;
-    
-    const options = {
-      root: scrollContainerRef.current,
-      threshold: 0.6,
-      rootMargin: "0px"
-    };
-    
-    observerRef.current = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const cardId = entry.target.getAttribute('data-id');
-        if (cardId) {
-          setVisibleCards(prev => ({
-            ...prev,
-            [cardId]: entry.isIntersecting
-          }));
-        }
-      });
-    }, options);
-    
-    // Observe all cards
-    const cards = scrollContainerRef.current.querySelectorAll('[data-id]');
-    cards.forEach(card => observerRef.current.observe(card));
-    
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [shorts]);
-
-  // Scroll navigation - updated for 240px card width
-const scrollLeft = () => {
-  if (scrollContainerRef.current) {
-    scrollContainerRef.current.scrollBy({ left: -280, behavior: 'smooth' }); // Changed from -320 to -260
-  }
-};
-
-const scrollRight = () => {
-  if (scrollContainerRef.current) {
-    scrollContainerRef.current.scrollBy({ left: 280, behavior: 'smooth' }); // Changed from 320 to 260
-  }
-};
-
- 
-
-  const handlePlayShort = (short) => {
+  const handleCardClick = (short) => {
     setSelectedShort(short);
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedShort(null);
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
   };
 
-  const handleNavigateModal = (newShort) => {
-    setSelectedShort(newShort);
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
   };
 
-  useEffect(() => {
-    fetchInitialShorts();
-  }, []);
-
-  if (loading && shorts.length === 0) {
-    return (
-      <section className="py-8 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
-          <div className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-8 bg-purple-600 rounded-full" />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Let's Catch Up</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Loading...</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-4 overflow-hidden">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} style={{ width: "280px" }}>
-                <SkeletonNewsCard />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (shorts.length === 0) {
-    return null; // Don't show section if no shorts
+  if (loading || shorts.length === 0) {
+    return null;
   }
 
   return (
     <>
-      <section className="py-8 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
-          {/* Section Header */}
-          <div className="flex items-center justify-between mb-6">
+      <div className="hidden md:block py-12 bg-gradient-to-b from-red-50 to-white dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-8xl mx-auto px-6">
+          {/* Section Header - GPN Branding */}
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-1 h-8 bg-purple-600 rounded-full" />
+              <div className="w-1 h-10 bg-red-600 rounded-full" />
               <div>
-                <div className="flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-purple-600" />
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Let's Catch Up
-                  </h2>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Quick bites of entertainment and knowledge
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Visual Stories
+                  <Flame className="w-5 h-5 text-red-600" />
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  News Beyond Headlines
                 </p>
               </div>
             </div>
-            
-            {/* Scroll Indicators (Desktop) */}
-            <div className="hidden md:flex items-center gap-2">
-              <button
-                onClick={scrollLeft}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </button>
-              <button
-                onClick={scrollRight}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              </button>
-            </div>
+            <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+              View All
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Horizontal Scroll Container */}
+          {/* Desktop Horizontal Rail */}
           <div className="relative group">
-            <ShortsNavigation
-              onPrev={scrollLeft}
-              onNext={scrollRight}
-              hasPrev={true}
-              hasNext={true}
-              isDark={false}
-            />
-            
+            {/* Navigation Arrows */}
+            <button
+              onClick={scrollLeft}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              onClick={scrollRight}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center hover:bg-white transition-all opacity-0 group-hover:opacity-100"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-700" />
+            </button>
+
+            {/* Cards Container */}
             <div
               ref={scrollContainerRef}
               className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {shorts.map((short) => (
-                <div key={short.id} data-id={short.id}>
-                  <ShortsCard
-                    short={short}
-                    isDark={false}
-                    onPlay={handlePlayShort}
-                    isVisible={visibleCards[short.id] || false}
-                  />
-                </div>
-              ))}
-              
-              {/* Load More Trigger */}
-              {hasMore && (
-                <div ref={loaderRef} className="flex-shrink-0 w-20 flex items-center justify-center">
-                  {loadingMore && (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs text-gray-500">Loading...</span>
+              {shorts.map((short, index) => {
+                const isCenter = index >= 2 && index < shorts.length - 2;
+                const scale = isCenter ? 1 : 0.92;
+                const opacity = isCenter ? 1 : 0.7;
+
+                return (
+                  <div
+                    key={short.id}
+                    className="flex-shrink-0 cursor-pointer group/card transition-all duration-300 hover:scale-[1.02]"
+                    style={{ width: "240px" }}
+                    onClick={() => handleCardClick(short)}
+                  >
+                    <div 
+                      className="relative rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300"
+                      style={{ height: "420px" }}
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative w-full h-full">
+                        {short.thumbnail ? (
+                          <img
+                            src={short.thumbnail}
+                            alt={short.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : short.videoId ? (
+                          <img
+                            src={`https://img.youtube.com/vi/${short.videoId}/hqdefault.jpg`}
+                            alt={short.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
+                            <Play className="w-12 h-12 text-white/30" />
+                          </div>
+                        )}
+
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                        {/* Play Icon - Shows on hover */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
+                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                            <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                          </div>
+                        </div>
+
+                        {/* Badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2.5 py-1 bg-red-600 text-white text-[9px] font-bold rounded-full uppercase tracking-wider">
+                            {short.videoType === 'reel' ? 'Reel' : 'Short'}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <h4 className="text-white text-sm font-bold leading-snug line-clamp-2 mb-2">
+                            {short.title}
+                          </h4>
+                          <div className="flex items-center gap-3 text-white/70 text-[10px]">
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              {short.formattedViews || (short.views || 0)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {short.formattedDate || 'Recent'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Stats */}
-          {shorts.length > 0 && (
-            <div className="mt-4 text-center">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                {shorts.length}+ short videos • Scroll for more
-              </p>
-            </div>
-          )}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {shorts.length}+ short videos • Hover to preview • Click to watch
+            </p>
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* Modal */}
       {isModalOpen && selectedShort && (
         <ShortsModal
           short={selectedShort}
           allShorts={shorts}
-          onClose={handleCloseModal}
-          onNavigate={handleNavigateModal}
+          onClose={() => setIsModalOpen(false)}
+          onNavigate={setSelectedShort}
           isDark={false}
         />
       )}
