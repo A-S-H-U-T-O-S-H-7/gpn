@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { 
-  X, ChevronLeft, ChevronRight, Share2, Eye, Calendar, 
-  Volume2, VolumeX, Link as LinkIcon, Play, Pause,
+  X, Share2, Eye, Calendar, 
+  Volume2, VolumeX, Link as LinkIcon,
   ChevronUp, ChevronDown
 } from "lucide-react";
 import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa";
 import { toast } from "react-hot-toast";
+import { motion, PanInfo } from "framer-motion";
 
 export default function ShortsModal({ short, allShorts, onClose, onNavigate, isDark }) {
   const [currentShort, setCurrentShort] = useState(short);
@@ -15,11 +16,10 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
   const [totalCount, setTotalCount] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startY, setStartY] = useState(0);
-  const [offsetY, setOffsetY] = useState(0);
+  const [direction, setDirection] = useState(0);
   const iframeRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     const index = allShorts.findIndex(s => s.id === short.id);
@@ -27,6 +27,14 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
     setTotalCount(allShorts.length);
     setCurrentShort(short);
   }, [short, allShorts]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -44,61 +52,28 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, allShorts]);
 
-  // Touch swipe for vertical navigation
-  const handleTouchStart = (e) => {
-    setIsDragging(true);
-    setStartY(e.touches[0].clientY);
-    setOffsetY(0);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isDragging) return;
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - startY;
-    setOffsetY(diff);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    if (offsetY < -50) {
-      handleNext();
-    } else if (offsetY > 50) {
-      handlePrev();
-    }
-    setOffsetY(0);
-  };
-
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentIndex > 1) {
       const prevShort = allShorts[currentIndex - 2];
       setCurrentShort(prevShort);
       setCurrentIndex(currentIndex - 1);
+      setDirection(-1);
       if (onNavigate) onNavigate(prevShort);
     }
-  };
+  }, [currentIndex, allShorts, onNavigate]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < totalCount) {
       const nextShort = allShorts[currentIndex];
       setCurrentShort(nextShort);
       setCurrentIndex(currentIndex + 1);
+      setDirection(1);
       if (onNavigate) onNavigate(nextShort);
     }
-  };
+  }, [currentIndex, totalCount, allShorts, onNavigate]);
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    if (iframeRef.current) {
-      // This will reload the iframe with new mute state
-      const src = iframeRef.current.src;
-      const newSrc = src.replace(/mute=\d/, `mute=${isMuted ? 0 : 1}`);
-      iframeRef.current.src = newSrc;
-    }
-  };
-
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-    // You can implement play/pause if needed
   };
 
   const handleShare = async (platform) => {
@@ -129,24 +104,73 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
     setShowShareMenu(false);
   };
 
+  // Handle vertical drag for swipe up/down
+  const handleDragEnd = (event, info) => {
+    const threshold = 80;
+    const offset = info.offset.y;
+    
+    if (offset < -threshold) {
+      // Swipe up - next
+      handleNext();
+    } else if (offset > threshold) {
+      // Swipe down - prev
+      handlePrev();
+    }
+    setIsDragging(false);
+  };
+
+  const variants = {
+    enter: (direction) => ({
+      y: direction > 0 ? 100 : -100,
+      opacity: 0,
+      scale: 0.95,
+    }),
+    center: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    },
+    exit: (direction) => ({
+      y: direction > 0 ? -100 : 100,
+      opacity: 0,
+      scale: 0.95,
+      transition: {
+        duration: 0.25,
+        ease: "easeIn"
+      }
+    })
+  };
+
   return (
     <div 
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      ref={containerRef}
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+      style={{ touchAction: 'none' }}
     >
       <div className="relative w-full h-full max-w-2xl mx-auto flex flex-col">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-all duration-200 border border-white/20"
+          className="absolute top-4 right-4 z-30 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-all duration-200 border border-white/20"
         >
           <X className="w-5 h-5 text-white" />
         </button>
 
-        {/* Swipe Hint - Up/Down */}
-        <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-10 hidden md:flex flex-col items-center gap-2">
+        {/* Progress Indicator */}
+        {totalCount > 1 && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm">
+            <span className="text-white text-xs font-medium">
+              {currentIndex} / {totalCount}
+            </span>
+          </div>
+        )}
+
+        {/* Swipe Hint - Desktop */}
+        <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-20 hidden md:flex flex-col items-center gap-2">
           <button onClick={handlePrev} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all">
             <ChevronUp className="w-5 h-5 text-white/60" />
           </button>
@@ -156,12 +180,25 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
           </button>
         </div>
 
-        {/* Video Container */}
-        <div className="flex-1 relative bg-black">
+        {/* Video Container with Drag */}
+        <motion.div 
+          className="flex-1 relative bg-black overflow-hidden cursor-grab active:cursor-grabbing"
+          custom={direction}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          variants={variants}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.3}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={handleDragEnd}
+          style={{ touchAction: 'none' }}
+        >
           {currentShort.videoId && (
             <iframe
               ref={iframeRef}
-              src={`https://www.youtube.com/embed/${currentShort.videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=1&modestbranding=1&rel=0&showinfo=0&playsinline=1`}
+              src={`https://www.youtube.com/embed/${currentShort.videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&modestbranding=1&rel=0&showinfo=0&playsinline=1`}
               title={currentShort.title}
               className="w-full h-full object-contain"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -169,19 +206,21 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
             />
           )}
 
-          {/* Progress Indicator */}
-          {totalCount > 1 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm">
-              <span className="text-white text-xs font-medium">
-                {currentIndex} / {totalCount}
-              </span>
+          {/* Swipe Hint Overlay - Mobile */}
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 md:hidden">
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex gap-2 text-white/20">
+                <ChevronUp className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] text-white/20">Swipe to navigate</span>
             </div>
-          )}
+          </div>
 
           {/* Mute/Unmute Button */}
           <button
             onClick={toggleMute}
-            className="absolute bottom-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-all duration-200"
+            className="absolute bottom-4 right-4 z-20 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-all duration-200"
           >
             {isMuted ? (
               <VolumeX className="w-4 h-4 text-white" />
@@ -189,10 +228,10 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
               <Volume2 className="w-4 h-4 text-white" />
             )}
           </button>
-        </div>
+        </motion.div>
 
         {/* Info Panel */}
-        <div className="bg-gray-900/90 backdrop-blur-sm px-4 py-3">
+        <div className="bg-gradient-to-t from-black/90 to-transparent px-4 py-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-4">
               <h2 className="text-white text-sm md:text-base font-semibold mb-1 line-clamp-2">
@@ -254,11 +293,6 @@ export default function ShortsModal({ short, allShorts, onClose, onNavigate, isD
               )}
             </div>
           </div>
-
-          {/* Mobile Swipe Hint */}
-          <p className="text-center text-[8px] text-white/30 mt-1 md:hidden">
-            ↕ Swipe up/down for next/previous story
-          </p>
         </div>
       </div>
     </div>
