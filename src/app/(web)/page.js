@@ -10,13 +10,14 @@ import LatestNewsSection from "@/components/sections/news-section/LatestNewsSect
 import NewsletterSection from "@/components/sections/NewsletterSection";
 import TrendingSection from "@/components/sections/TrendingSection";
 import ShortsWrapper from "@/components/sections/shorts/ShortsWrapper";
+import Top10TrendingCombined from "@/components/sections/Top10TrendingCombined";
 
 export default function HomePage() {
   return (
     <div className="max-w-8xl mx-auto pt-2 pb-8">
       <BreakingNewsTicker />
       <HeroSection/>
-      <TrendingSection/>
+      <Top10TrendingCombined />
       <CategorySection/>
       
       <ShortsWrapper />

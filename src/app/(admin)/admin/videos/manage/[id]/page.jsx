@@ -37,6 +37,8 @@ export default function ManageVideoPage() {
     isEditorPick: false,
     isTrending: false,
     isHero: false,
+    isTop10: false,
+    publishDate: new Date().toISOString().split('T')[0],
   });
 
   const [videoPreview, setVideoPreview] = useState(null);
@@ -75,6 +77,8 @@ export default function ManageVideoPage() {
               isEditorPick: video.isEditorPick || false,
               isTrending: video.isTrending || false,
               isHero: video.isHero || false,
+              isTop10: video.isTop10 || false,
+              publishDate: video.publishDate || new Date().toISOString().split('T')[0],
             });
           } else {
             toast.error("Video not found");
@@ -132,7 +136,9 @@ export default function ManageVideoPage() {
         isFeatured: formData.isFeatured,
         isEditorPick: formData.isEditorPick,  
         isTrending: formData.isTrending,
-        isHero: formData.isHero,              
+        isHero: formData.isHero,
+        isTop10: formData.isTop10,
+        publishDate: formData.publishDate || new Date().toISOString().split('T')[0],              
       };
 
       let result;

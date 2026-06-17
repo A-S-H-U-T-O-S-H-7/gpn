@@ -92,6 +92,13 @@ export default function NewsTableRow({ news, index, currentPage, itemsPerPage, i
           <span>{formatDate(news.publishedAt || news.createdAt)}</span>
         </div>
        </td>
+
+       <td className="px-6 py-4">
+        <div className={`flex items-center gap-1 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+          <Calendar className="w-3 h-3" />
+    <span>{news.publishDate ? formatDate(news.publishDate) : formatDate(news.publishedAt || news.createdAt)}</span>
+        </div>
+       </td>
       
       <td className="px-6 py-4">
         <div className="flex items-center gap-1">

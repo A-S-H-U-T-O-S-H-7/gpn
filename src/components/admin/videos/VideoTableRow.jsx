@@ -82,6 +82,13 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
                 TRENDING
               </span>
             )}
+
+            {/* NEW: Top 10 Badge */}
+            {video.isTop10 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded">
+                🔥 TOP 10
+              </span>
+            )}
           </div>
           {video.duration && (
             <div className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
@@ -90,7 +97,7 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
           )}
         </div>
       </td>
-      
+
       <td className="px-6 py-4">
         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(video.status)}`}>
           {video.status || 'draft'}
@@ -101,6 +108,13 @@ export default function VideoTableRow({ video, index, currentPage, itemsPerPage,
         <div className={`flex items-center gap-1 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
           <Calendar className="w-3 h-3" />
           <span>{formatDate(video.publishedAt || video.createdAt)}</span>
+        </div>
+      </td>
+
+      <td className="px-6 py-4">
+        <div className={`flex items-center gap-1 text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+          <Calendar className="w-3 h-3" />
+          <span>{video.publishDate ? formatDate(video.publishDate) : formatDate(video.publishedAt || video.createdAt)}</span>
         </div>
       </td>
       

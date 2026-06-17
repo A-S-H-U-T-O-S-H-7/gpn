@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Flame, Eye, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { getTrendingItems } from "@/lib/services/trendingService";
@@ -13,12 +13,10 @@ export default function TrendingSection() {
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-  
-  const loaderRef = useRef(null);
-  const itemsPerPage = 8;
 
-  // Fetch initial items
+  const loaderRef = useRef(null);
+  const itemsPerPage = 6;
+
   const fetchInitialItems = async () => {
     setLoading(true);
     try {
@@ -33,20 +31,17 @@ export default function TrendingSection() {
       console.error("Error fetching trending items:", error);
     } finally {
       setLoading(false);
-      setInitialLoadDone(true);
     }
   };
 
-  // Load more items
   const loadMoreItems = async () => {
     if (loadingMore || !hasMore) return;
-    
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
       const result = await getTrendingItems(nextPage, itemsPerPage);
       if (result.success && result.items.length > 0) {
-        setItems(prev => [...prev, ...result.items]);
+        setItems((prev) => [...prev, ...result.items]);
         setPage(nextPage);
         setHasMore(result.hasMore);
       } else {
@@ -59,12 +54,9 @@ export default function TrendingSection() {
     }
   };
 
-  // Reset and show all
   const handleShowAll = () => {
     setShowAll(true);
-    if (!hasMore && items.length < totalItems) {
-      loadMoreItems();
-    }
+    if (!hasMore && items.length < totalItems) loadMoreItems();
   };
 
   const handleShowLess = () => {
@@ -72,10 +64,9 @@ export default function TrendingSection() {
     fetchInitialItems();
   };
 
-  // Intersection Observer for infinite scroll when showAll is true
+  // Infinite scroll observer
   useEffect(() => {
     if (!showAll || !hasMore || loadingMore || loading) return;
-    
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
@@ -84,11 +75,7 @@ export default function TrendingSection() {
       },
       { threshold: 0.1, rootMargin: "100px" }
     );
-    
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-    
+    if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
   }, [showAll, hasMore, loadingMore, loading]);
 
@@ -98,172 +85,179 @@ export default function TrendingSection() {
 
   const displayedItems = showAll ? items : items.slice(0, 8);
 
+  // ── Loading skeleton ──
   if (loading && items.length === 0) {
     return (
-      <section className="py-10 bg-ghee dark:bg-slate-900/50">
-        <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Flame className="w-6 h-6 text-red fill-red" />
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Trending Now</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {[1,2,3,4,5,6,7,8].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 dark:bg-gray-700 h-44 rounded-t-xl" />
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-b-xl">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-2" />
-                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2" />
-                  <div className="flex justify-between">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-                  </div>
+      <section className="py-2">
+        <div className="flex items-center gap-3 mb-5">
+          <Flame className="w-5 h-5 text-red-600 fill-red-600" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trending Now</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800"
+            >
+              <div className="h-40 bg-gray-200 dark:bg-gray-700" />
+              <div className="bg-white dark:bg-gray-900 p-3 space-y-2">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                <div className="flex justify-between">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-14" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-14" />
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
     );
   }
 
-  if (items.length === 0 && !loading) {
-    return null;
-  }
+  if (items.length === 0 && !loading) return null;
 
   return (
-    <section className="py-10 bg-ghee dark:bg-slate-900/50">
-      <div className="max-w-8xl mx-auto px-4 sm:px-8 lg:px-10">
-        {/* Section Header - No button here anymore */}
-        <div className="flex items-center gap-2 mb-6">
-          <Flame className="w-6 h-6 text-red fill-red" />
-          <h2 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white">
-            Trending Now
-          </h2>
-          <span className="px-2 py-1 bg-red/10 text-red text-xs font-semibold rounded-full">
-            {totalItems} Stories
-          </span>
-        </div>
-
-        {/* Trending Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {displayedItems.map((item, index) => (
-            <Link
-              key={`${item.id}-${item.type}`}
-              href={item.type === 'news' ? `/news/${item.slug}` : `/video/${item.slug}`}
-              className="group cursor-pointer bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-gray-200 dark:border-gray-700"
-            >
-              {/* Image Container */}
-              <div className="relative h-44 overflow-hidden bg-gradient-to-br from-gray-600 to-gray-800">
-                {item.image ? (
-                  <img 
-                    src={item.image} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">📰</span>
-                  </div>
-                )}
-                {/* Trending Rank Badge */}
-                <div className="absolute top-3 left-3 w-7 h-7 bg-red text-white font-bold rounded-md flex items-center justify-center text-xs shadow-lg z-10">
-                  {index + 1}
-                </div>
-                {/* Type Badge */}
-                {item.type === 'video' && (
-                  <div className="absolute top-3 right-3 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-md">
-                    VIDEO
-                  </div>
-                )}
-                {item.duration && (
-                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-md">
-                    {item.duration}
-                  </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="p-3">
-                {/* Category */}
-                <div className="inline-block px-2 py-0.5 bg-red/10 text-red text-xs font-semibold rounded mb-2">
-                  {item.category || (item.type === 'news' ? 'News' : 'Video')}
-                </div>
-
-                {/* Title */}
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-red transition-colors">
-                  {item.title}
-                </h3>
-
-                {/* Meta Info */}
-                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{item.timeAgo}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    <span>{item.formattedViews} views</span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Show All / Show Less Button - CENTERED AT BOTTOM with larger border */}
-        {!showAll && items.length >= 8 && (
-          <div className="flex justify-center mt-10">
-            <button
-              onClick={handleShowAll}
-              className="group cursor-pointer flex items-center gap-2 px-3 py-2 bg-transparent border-2 border-red-500 hover:bg-red-500 text-red-600 hover:text-white font-semibold rounded-full transition-all duration-300 shadow-md hover:shadow-lg hover:shadow-red-500/20"
-            >
-              <span>Show All </span>
-              <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-            </button>
-          </div>
-        )}
-
-        {showAll && (
-          <div className="flex justify-center mt-10">
-            <button
-              onClick={handleShowLess}
-              className="group cursor-pointer flex items-center gap-2 px-3 py-2 bg-transparent border-2 border-gray-400 hover:border-red-500 text-gray-600 hover:text-red-500 font-semibold rounded-full transition-all duration-300"
-            >
-              <ChevronUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-              <span>Show Less</span>
-            </button>
-          </div>
-        )}
-
-        {/* Load More Trigger for Infinite Scroll */}
-        {showAll && hasMore && (
-          <div ref={loaderRef} className="flex justify-center items-center py-8 mt-4">
-            {loadingMore ? (
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-red rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-red rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-red rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            ) : (
-              <button
-                onClick={loadMoreItems}
-                className="px-6 py-2 text-sm text-red border border-red rounded-full hover:bg-red hover:text-white transition-all duration-300"
-              >
-                Load More
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* End Message */}
-        {showAll && !hasMore && items.length > 8 && (
-          <div className="text-center py-6">
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              You've reached the end of trending stories
-            </p>
-          </div>
-        )}
+    <section className="py-2">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 mb-5">
+        <Flame className="w-5 h-5 text-red-600 fill-red-600 flex-shrink-0" />
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trending Now</h2>
+        {/* <span className="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-900">
+          {totalItems} stories
+        </span> */}
       </div>
+
+      {/* ── Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        {displayedItems.map((item, index) => (
+          <Link
+            key={`${item.id}-${item.type}`}
+            href={item.type === "news" ? `/news/${item.slug}` : `/video/${item.slug}`}
+            className="group flex flex-col bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 hover:border-red-200 dark:hover:border-red-900 hover:-translate-y-0.5 transition-all duration-300 shadow-sm hover:shadow-md"
+          >
+            {/* Image */}
+            <div className="relative h-40 overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+              {item.image ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-3xl opacity-20">📰</span>
+                </div>
+              )}
+
+              {/* Rank badge */}
+              <div className="absolute top-2.5 left-2.5 w-6 h-6 bg-red-700 text-white font-bold rounded-md flex items-center justify-center text-[10px] shadow z-10">
+                {index + 1}
+              </div>
+
+              {/* Type badge */}
+              {item.type === "video" && (
+                <div className="absolute top-2.5 right-2.5 bg-black/65 text-white text-[9px] font-medium px-1.5 py-0.5 rounded tracking-wider">
+                  VIDEO
+                </div>
+              )}
+
+              {/* Duration */}
+              {item.duration && (
+                <div className="absolute bottom-2 right-2 bg-black/65 text-white text-[9px] px-1.5 py-0.5 rounded">
+                  {item.duration}
+                </div>
+              )}
+
+              {/* Bottom gradient for text legibility on dark images */}
+              <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Body */}
+            <div className="flex flex-col flex-1 p-3 gap-2">
+              {/* Category */}
+              <span className="self-start text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900 px-2 py-0.5 rounded">
+                {item.category || (item.type === "news" ? "News" : "Video")}
+              </span>
+
+              {/* Title */}
+              <h3 className="text-[13px] font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-700 dark:group-hover:text-red-400 transition-colors flex-1">
+                {item.title}
+              </h3>
+
+              {/* Meta */}
+              <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500 mt-auto">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {item.timeAgo}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  {item.formattedViews} views
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Show All button ── */}
+      {!showAll && items.length >= 8 && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleShowAll}
+            className="group flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:border-red-300 dark:hover:border-red-800 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-200"
+          >
+            Show all trending stories
+            <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Show Less button ── */}
+      {showAll && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleShowLess}
+            className="group flex items-center gap-2 px-6 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:border-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all duration-200"
+          >
+            <ChevronUp className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+            Show less
+          </button>
+        </div>
+      )}
+
+      {/* ── Infinite scroll trigger ── */}
+      {showAll && hasMore && (
+        <div ref={loaderRef} className="flex justify-center items-center py-8">
+          {loadingMore ? (
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <div
+                  key={delay}
+                  className="w-2 h-2 bg-red-600 rounded-full animate-bounce"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={loadMoreItems}
+              className="px-5 py-2 text-sm text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-full hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
+            >
+              Load more
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── End of list ── */}
+      {showAll && !hasMore && items.length > 8 && (
+        <p className="text-center text-xs text-gray-400 dark:text-gray-600 py-6">
+          You've seen all trending stories
+        </p>
+      )}
     </section>
   );
 }

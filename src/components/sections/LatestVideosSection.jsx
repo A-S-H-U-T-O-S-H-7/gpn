@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Play, Eye, Calendar, TrendingUp, Clock, Heart, ChevronDown, Video } from "lucide-react";
+import { Play, Eye, Calendar, TrendingUp, Clock, Heart, ChevronDown, Video, ChevronRight } from "lucide-react";
 import { getLatestVideos, getMoreVideos } from "@/lib/services/videoService";
 
 // ── Skeleton Card ──────────────────────────────────────────────
@@ -88,7 +88,7 @@ function VideoCard({ video }) {
           )}
         </div>
 
-        {/* ── Category chip (overlapping thumbnail) ── */}
+        {/* ── Category chip ── */}
         <div className="absolute left-2.5 -bottom-[calc(theme(spacing.3)+0.6rem)] sm:-bottom-[calc(theme(spacing.3)+0.7rem)]">
           <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-[9px] sm:text-[10px] font-bold rounded-full shadow-md uppercase tracking-wide">
             {video.category || "Video"}
@@ -126,7 +126,7 @@ function VideoCard({ video }) {
           </div>
         </div>
 
-        {/* Bottom accent bar — visible on hover */}
+        {/* Bottom accent bar */}
         <div className="h-0.5 w-0 group-hover:w-full bg-gradient-to-r from-red-500 to-rose-400 transition-all duration-500 rounded-b-xl" />
       </div>
     </Link>
@@ -137,70 +137,26 @@ function VideoCard({ video }) {
 export default function LatestVideosSection() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [totalVideos, setTotalVideos] = useState(0);
-  const [lastDoc, setLastDoc] = useState(null);
 
-  const loaderRef = useRef(null);
-  const initialLoadDone = useRef(false);
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
-  const fetchInitialVideos = async () => {
+  const fetchVideos = async () => {
     setLoading(true);
     try {
       const result = await getLatestVideos(1, 20);
       if (result.success) {
         setVideos(result.videos);
-        setHasMore(result.hasMore);
-        setTotalVideos(result.videos.length);
-        if (result.lastVisible) setLastDoc(result.lastVisible);
+        setTotalVideos(result.totalVideos || result.videos.length);
       }
     } catch (err) {
       console.error("Error fetching videos:", err);
     } finally {
       setLoading(false);
-      initialLoadDone.current = true;
     }
   };
-
-  const loadMoreVideos = async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    try {
-      const result = await getMoreVideos(lastDoc, 10);
-      if (result.success && result.videos.length > 0) {
-        setVideos((prev) => [...prev, ...result.videos]);
-        setLastDoc(result.lastVisible);
-        setHasMore(result.hasMore);
-        setTotalVideos((prev) => prev + result.videos.length);
-      } else {
-        setHasMore(false);
-      }
-    } catch (err) {
-      console.error("Error loading more videos:", err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
-  // Intersection observer for infinite scroll
-  useEffect(() => {
-    if (!loaderRef.current || !hasMore || loading || loadingMore) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
-          loadMoreVideos();
-        }
-      },
-      { threshold: 0.1, rootMargin: "120px" }
-    );
-    observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading, lastDoc]);
-
-  useEffect(() => {
-    fetchInitialVideos();
-  }, []);
 
   return (
     <section id="latest-videos-section" className="pt-8 bg-ghee dark:bg-slate-900/60">
@@ -209,14 +165,10 @@ export default function LatestVideosSection() {
         {/* ── Section Header ── */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            {/* Accent bar */}
             <div className="w-1 h-7 bg-red-600 rounded-full" />
-
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
               Latest Videos
             </h2>
-
-            {/* Fresh badge */}
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-full">
               <Clock className="w-3 h-3 text-red-500" />
               <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold uppercase tracking-wide">
@@ -224,73 +176,42 @@ export default function LatestVideosSection() {
               </span>
             </span>
           </div>
-
-          {!loading && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
-              <Video className="w-3.5 h-3.5" />
-              <span>{totalVideos}+ videos</span>
-            </div>
-          )}
         </div>
 
         {/* ── Video Grid ── */}
-        {loading && videos.length === 0 ? (
+        {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
             {[...Array(10)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-slate-500 dark:text-slate-400">No videos available</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-            {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
-        )}
-
-        {/* ── Load More / Infinite Scroll trigger ── */}
-        {hasMore && (
-          <div ref={loaderRef} className="flex justify-center items-center py-10 mt-2">
-            {loadingMore ? (
-              <div className="flex items-center gap-1.5">
-                {[0, 150, 300].map((delay) => (
-                  <span
-                    key={delay}
-                    className="w-2 h-2 rounded-full bg-red-500 animate-bounce"
-                    style={{ animationDelay: `${delay}ms` }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <button
-                onClick={loadMoreVideos}
-                className="
-                  group inline-flex items-center gap-2
-                  px-6 py-2.5 rounded-full text-sm font-semibold
-                  bg-white dark:bg-slate-800
-                  border-2 border-red-500 dark:border-red-600
-                  text-red-600 dark:text-red-400
-                  hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white
-                  shadow-md hover:shadow-lg
-                  transition-all duration-300
-                "
-              >
-                Load More Videos
-                <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform duration-200" />
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── End of library ── */}
-        {!hasMore && videos.length > 0 && (
-          <div className="text-center py-6">
-            <div className="inline-flex flex-col items-center gap-2">
-              <div className="w-10 h-px bg-slate-200 dark:bg-slate-700" />
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                You've reached the end of our video library
-              </p>
-              <div className="w-10 h-px bg-slate-200 dark:bg-slate-700" />
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
+              {videos.map((video) => (
+                <VideoCard key={video.id} video={video} />
+              ))}
             </div>
-          </div>
+
+            {/* ── View All Button - Centered at Bottom ── */}
+            <div className="flex justify-center mx-10 my-8">
+              <Link
+                href="/latestVideos"
+                className="group relative inline-flex items-center gap-3 px-8 py-3.5 text-sm font-semibold text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border-2 border-red-200 dark:border-red-700/50 rounded-full shadow-sm hover:shadow-md hover:border-red-400 dark:hover:border-red-500 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <span>View All Videos</span>
+                <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                  {totalVideos}
+                </span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                
+                {/* Glow Effect */}
+                <span className="absolute inset-0 rounded-full bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </section>

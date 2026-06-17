@@ -109,6 +109,38 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
         </select>
       </div>
 
+
+{/* Publish Date */}
+<div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
+  <div className="flex items-center gap-2 mb-4">
+    <div className={`p-1.5 rounded-lg ${isDark ? "bg-red-900/50" : "bg-red-100"}`}>
+      <Calendar className={`w-4 h-4 text-red`} />
+    </div>
+    <h3 className={`text-lg font-semibold ${isDark ? "text-gray-50" : "text-gray-950"}`}>
+      Publish Date
+    </h3>
+  </div>
+  
+  <div>
+    <label className={`block text-sm font-medium mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+      Select Publication Date
+    </label>
+    <input
+      type="date"
+      value={formData.publishDate || new Date().toISOString().split('T')[0]}
+      onChange={(e) => onInputChange('publishDate', e.target.value)}
+      className={`w-full px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none ${
+        isDark
+          ? "bg-gray-700 border-red-500/40 text-white focus:border-red"
+          : "bg-gray-50 border-red-300 text-gray-900 focus:border-red"
+      }`}
+    />
+    <p className={`text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+      📅 Set the publication date. Content will be ordered by this date.
+    </p>
+  </div>
+</div>
+
       {/* Video Type Selection */}
       <div className={`rounded-xl border-2 p-5 ${isDark ? "bg-gray-800 border-red-500/40" : "bg-white border-red-300"}`}>
         <div className="flex items-center gap-2 mb-4">
@@ -258,6 +290,23 @@ export default function VideoSidebar({ formData, onInputChange, onSubmit, isLoad
               </div>
             )}
           </div>
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+  <ToggleSwitch
+    enabled={formData.isTop10}
+    onChange={(val) => onInputChange('isTop10', val)}
+    label="🔥 Top 10 News"
+    icon={TrendingUp}
+    isDark={isDark}
+  />
+  {formData.isTop10 && (
+    <div className="mt-2 p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+      <p className="text-xs text-orange-600 dark:text-orange-400">
+        🔥 This video will appear in the Top 10 News section on homepage
+      </p>
+    </div>
+  )}
+</div>
         </div>
       </div>
 

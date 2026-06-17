@@ -23,7 +23,6 @@ const ITEMS_PER_PAGE = 10;
 
 // ==================== HELPER FUNCTIONS ====================
 
-// Generate slug from title
 export const generateSlug = (title) => {
   return title
     .toLowerCase()
@@ -33,34 +32,28 @@ export const generateSlug = (title) => {
     .replace(/^-+|-+$/g, '');
 };
 
-// Extract YouTube ID from URL (supports regular videos AND shorts)
 export const getYouTubeId = (url) => {
   if (!url) return null;
   
-  // Handle youtu.be format
   if (url.includes('youtu.be/')) {
     const match = url.match(/youtu\.be\/([^?&]+)/);
     return match ? match[1] : null;
   }
   
-  // Handle youtube.com/shorts/ format
   if (url.includes('/shorts/')) {
     const match = url.match(/\/shorts\/([^?&]+)/);
     return match ? match[1] : null;
   }
   
-  // Handle standard youtube.com/watch?v= format
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-// Get YouTube thumbnail URL
 export const getYouTubeThumbnail = (videoId) => {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 };
 
-// Format date as "time ago"
 function getTimeAgo(date) {
   if (!date) return 'Recently';
   const seconds = Math.floor((new Date() - date) / 1000);
@@ -80,7 +73,6 @@ function getTimeAgo(date) {
   return 'Just now';
 }
 
-// Format view count (e.g., 1000 -> 1K)
 function formatViews(views) {
   if (!views) return '0';
   if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
@@ -88,21 +80,55 @@ function formatViews(views) {
   return views.toString();
 }
 
-// ==================== HERO VIDEO MANAGEMENT ====================
+// ==================== SET TOP 10 VIDEO ====================
 
-// Set video as hero (removes hero from other videos)
+const setVideoAsTop10 = async (videoId, adminData) => {
+  try {
+    const batch = writeBatch(db);
+    
+    const videosQuery = query(collection(db, VIDEOS_COLLECTION), where('isTop10', '==', true));
+    const videosSnapshot = await getDocs(videosQuery);
+    videosSnapshot.forEach(doc => {
+      if (doc.id !== videoId) {
+        batch.update(doc.ref, { isTop10: false });
+      }
+    });
+    
+    const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
+    batch.update(videoRef, { isTop10: true });
+    
+    await batch.commit();
+    
+    await logActivity({
+      action: ActivityActions.UPDATE,
+      entityType: ActivityEntityTypes.VIDEO,
+      entityId: videoId,
+      entityTitle: 'Top 10 News',
+      details: `Set as Top 10 News on homepage`,
+      adminId: adminData.id,
+      adminName: adminData.name,
+      adminRole: adminData.role,
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting video as Top 10:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ==================== SET HERO VIDEO ====================
+
 const setVideoAsHero = async (videoId, adminData) => {
   try {
     const batch = writeBatch(db);
     
-    // Remove hero flag from all videos
     const videosQuery = query(collection(db, VIDEOS_COLLECTION), where('isHero', '==', true));
     const videosSnapshot = await getDocs(videosQuery);
     videosSnapshot.forEach(doc => {
       batch.update(doc.ref, { isHero: false });
     });
     
-    // Set hero flag on the selected video
     const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
     batch.update(videoRef, { isHero: true });
     
@@ -126,9 +152,8 @@ const setVideoAsHero = async (videoId, adminData) => {
   }
 };
 
-// ==================== CREATE/UPDATE/DELETE ====================
+// ==================== CREATE ====================
 
-// Create video
 export const createVideo = async (videoData, adminData) => {
   try { 
     const videoId = getYouTubeId(videoData.youtubeUrl);
@@ -152,6 +177,8 @@ export const createVideo = async (videoData, adminData) => {
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
       isHero: videoData.isHero || false,
+      isTop10: videoData.isTop10 || false,
+      publishDate: videoData.publishDate || new Date().toISOString().split('T')[0],
       views: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -160,6 +187,10 @@ export const createVideo = async (videoData, adminData) => {
     
     if (videoData.isHero && videoRef.id) {
       await setVideoAsHero(videoRef.id, adminData);
+    }
+    
+    if (videoData.isTop10 && videoRef.id) {
+      await setVideoAsTop10(videoRef.id, adminData);
     }
     
     await logActivity({
@@ -180,12 +211,13 @@ export const createVideo = async (videoData, adminData) => {
   }
 };
 
-// Update video
+// ==================== UPDATE ====================
+
 export const updateVideo = async (videoId, videoData, oldVideoData, adminData) => {
   try {
     const videoId_new = getYouTubeId(videoData.youtubeUrl);
-    
     const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
+    
     const updateData = {
       title: videoData.title,
       slug: videoData.url || generateSlug(videoData.title),
@@ -205,6 +237,8 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       isEditorPick: videoData.isEditorPick || false,
       isTrending: videoData.isTrending || false,
       isHero: videoData.isHero || false,
+      isTop10: videoData.isTop10 || false,
+      publishDate: videoData.publishDate || null,
       updatedAt: serverTimestamp(),
     };
     
@@ -218,7 +252,11 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       await setVideoAsHero(videoId, adminData);
     }
     
-    // Log video type change if it changed
+    if (videoData.isTop10 && videoId) {
+      await setVideoAsTop10(videoId, adminData);
+    }
+    
+    // Log changes
     if (oldVideoData.videoType !== videoData.videoType) {
       await logActivity({
         action: ActivityActions.UPDATE,
@@ -271,6 +309,32 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       });
     }
     
+    if (oldVideoData.isHero !== videoData.isHero) {
+      await logActivity({
+        action: videoData.isHero ? ActivityActions.HERO_ON : ActivityActions.HERO_OFF,
+        entityType: ActivityEntityTypes.VIDEO,
+        entityId: videoId,
+        entityTitle: videoData.title,
+        details: `${videoData.isHero ? 'Set as' : 'Removed from'} Hero`,
+        adminId: adminData.id,
+        adminName: adminData.name,
+        adminRole: adminData.role,
+      });
+    }
+    
+    if (oldVideoData.isTop10 !== videoData.isTop10) {
+      await logActivity({
+        action: videoData.isTop10 ? ActivityActions.TOP10_ON : ActivityActions.TOP10_OFF,
+        entityType: ActivityEntityTypes.VIDEO,
+        entityId: videoId,
+        entityTitle: videoData.title,
+        details: `${videoData.isTop10 ? 'Set as' : 'Removed from'} Top 10 News`,
+        adminId: adminData.id,
+        adminName: adminData.name,
+        adminRole: adminData.role,
+      });
+    }
+    
     if (oldVideoData.status !== videoData.status) {
       await logActivity({
         action: videoData.status === 'published' ? ActivityActions.PUBLISH : ActivityActions.UNPUBLISH,
@@ -302,7 +366,8 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
   }
 };
 
-// Delete video
+// ==================== DELETE ====================
+
 export const deleteVideo = async (videoId, videoTitle, adminData) => {
   try {
     await deleteDoc(doc(db, VIDEOS_COLLECTION, videoId));
@@ -327,7 +392,6 @@ export const deleteVideo = async (videoId, videoTitle, adminData) => {
 
 // ==================== GET VIDEO BY ID ====================
 
-// Get video by ID
 export const getVideoById = async (videoId) => {
   try {
     const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
@@ -361,6 +425,8 @@ export const getVideoById = async (videoId) => {
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
         isHero: data.isHero || false,
+        isTop10: data.isTop10 || false,
+        publishDate: data.publishDate || null,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
@@ -373,7 +439,8 @@ export const getVideoById = async (videoId) => {
   }
 };
 
-// Get video by slug (for public viewing)
+// ==================== GET VIDEO BY SLUG ====================
+
 export const getVideoBySlug = async (slug) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -399,6 +466,7 @@ export const getVideoBySlug = async (slug) => {
         videoId: data.videoId || '',
         duration: data.duration || '',
         views: data.views || 0,
+        publishDate: data.publishDate || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       }
@@ -411,7 +479,6 @@ export const getVideoBySlug = async (slug) => {
 
 // ==================== ADMIN: GET ALL VIDEOS ====================
 
-// Get all videos (for admin panel)
 export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all', featuredFilter = 'all') => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -440,13 +507,14 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
         isHero: data.isHero || false,
+        isTop10: data.isTop10 || false,
+        publishDate: data.publishDate || null,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
     });
     
-    // Apply featured filter
     if (featuredFilter !== 'all') {
       if (featuredFilter === 'featured') {
         videos = videos.filter(video => video.isFeatured === true);
@@ -456,17 +524,17 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         videos = videos.filter(video => video.isTrending === true);
       } else if (featuredFilter === 'hero') {
         videos = videos.filter(video => video.isHero === true);
+      } else if (featuredFilter === 'top10') {
+        videos = videos.filter(video => video.isTop10 === true);
       }
     }
     
-    // Apply search filter
     if (searchTerm) {
       videos = videos.filter(video => 
         video.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
-    // Pagination
     const totalItems = videos.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -484,15 +552,14 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
   }
 };
 
-// ==================== HOMEPAGE: LATEST VIDEOS (STANDARD ONLY) ====================
+// ==================== HOMEPAGE: LATEST VIDEOS ====================
 
-// Get latest videos for homepage - STANDARD VIDEOS ONLY (excludes shorts/reels)
 export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
-    let constraints = [
+    const constraints = [
       where('status', '==', 'published'),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),
       limit(itemsPerPage)
     ];
     
@@ -504,7 +571,6 @@ export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
       const data = doc.data();
       const videoType = data.videoType || 'standard';
       
-      // Only include standard videos (exclude shorts and reels)
       if (videoType === 'standard') {
         videos.push({
           id: doc.id,
@@ -512,7 +578,7 @@ export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
           slug: data.slug || '',
           duration: data.duration || '',
           views: data.views || 0,
-          date: data.createdAt?.toDate() || new Date(),
+          date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
           category: data.category || '',
           thumbnail: data.thumbnail || '',
           videoId: data.videoId || '',
@@ -539,14 +605,13 @@ export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
   }
 };
 
-// Get more videos (for load more functionality) - STANDARD VIDEOS ONLY
 export const getMoreVideos = async (lastDoc, itemsPerPage = 10) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
     const q = query(
       videosRef,
       where('status', '==', 'published'),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),
       startAfter(lastDoc),
       limit(itemsPerPage)
     );
@@ -566,7 +631,7 @@ export const getMoreVideos = async (lastDoc, itemsPerPage = 10) => {
           slug: data.slug || '',
           duration: data.duration || '',
           views: data.views || 0,
-          date: data.createdAt?.toDate() || new Date(),
+          date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
           category: data.category || '',
           thumbnail: data.thumbnail || '',
           videoId: data.videoId || '',
@@ -597,14 +662,13 @@ export const getMoreVideos = async (lastDoc, itemsPerPage = 10) => {
 
 // ==================== HOMEPAGE: SHORTS & REELS ====================
 
-// Get latest shorts/reels (with pagination)
 export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
     let constraints = [
       where('status', '==', 'published'),
       where('videoType', 'in', ['short', 'reel']),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
       limit(limitCount)
     ];
     
@@ -631,7 +695,7 @@ export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
         category: data.category || '',
         views: data.views || 0,
         videoType: data.videoType || 'short',
-        date: data.createdAt?.toDate() || new Date(),
+        date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
         publishedAt: data.publishedAt?.toDate() || null,
       });
       lastVisible = doc;
@@ -655,7 +719,6 @@ export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
   }
 };
 
-// Get shorts with navigation
 export const getShortsWithNavigation = async (currentId, allShorts) => {
   try {
     const currentIndex = allShorts.findIndex(short => short.id === currentId);
@@ -676,9 +739,8 @@ export const getShortsWithNavigation = async (currentId, allShorts) => {
   }
 };
 
-// ==================== HOMEPAGE: FEATURED VIDEOS SECTIONS ====================
+// ==================== HOMEPAGE: FEATURED SECTIONS ====================
 
-// Get most watched videos (for homepage)
 export const getMostWatchedVideos = async (limit = 5) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -710,7 +772,6 @@ export const getMostWatchedVideos = async (limit = 5) => {
   }
 };
 
-// Get editor's pick videos (for homepage)
 export const getEditorPickVideos = async (limit = 4) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -718,7 +779,7 @@ export const getEditorPickVideos = async (limit = 4) => {
       videosRef, 
       where('status', '==', 'published'),
       where('isEditorPick', '==', true),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
       limit(limit)
     );
     const snapshot = await getDocs(q);
@@ -743,7 +804,6 @@ export const getEditorPickVideos = async (limit = 4) => {
   }
 };
 
-// Get trending videos (for homepage)
 export const getTrendingVideos = async (limit = 6) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -776,7 +836,6 @@ export const getTrendingVideos = async (limit = 6) => {
   }
 };
 
-// Get featured videos (for homepage)
 export const getFeaturedVideos = async (maxItems = 8) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -784,7 +843,7 @@ export const getFeaturedVideos = async (maxItems = 8) => {
       videosRef, 
       where('status', '==', 'published'),
       where('isFeatured', '==', true),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
       limit(maxItems)
     );
     const snapshot = await getDocs(q);
@@ -809,7 +868,6 @@ export const getFeaturedVideos = async (maxItems = 8) => {
   }
 };
 
-// Get featured videos for hero section
 export const getFeaturedVideosForHero = async (maxItems = 5) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
@@ -817,7 +875,7 @@ export const getFeaturedVideosForHero = async (maxItems = 5) => {
       videosRef, 
       where('status', '==', 'published'),
       where('isFeatured', '==', true),
-      orderBy('publishedAt', 'desc'),
+      orderBy('publishDate', 'desc'),
       limit(maxItems) 
     );
     const snapshot = await getDocs(q);
@@ -833,6 +891,7 @@ export const getFeaturedVideosForHero = async (maxItems = 5) => {
         duration: data.duration || '',
         views: data.views || 0,
         videoId: data.videoId || '',
+        publishDate: data.publishDate || null,
         publishedAt: data.publishedAt?.toDate?.() || new Date(),
       });
     });
@@ -846,7 +905,6 @@ export const getFeaturedVideosForHero = async (maxItems = 5) => {
 
 // ==================== VIDEO ACTIONS ====================
 
-// Increment video view count
 export const incrementVideoView = async (videoId) => {
   try {
     const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
@@ -862,14 +920,13 @@ export const incrementVideoView = async (videoId) => {
 
 // ==================== CATEGORY VIDEOS ====================
 
-// Get videos by category slug (for category pages) - STANDARD VIDEOS ONLY
 export const getVideosByCategory = async (categorySlug, page = 1, itemsPerPage = 12) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
-    let constraints = [
+    const constraints = [
       where('status', '==', 'published'),
       where('category', '==', categorySlug),
-      orderBy('createdAt', 'desc'),
+      orderBy('publishDate', 'desc'),
       limit(itemsPerPage)
     ];
     
@@ -891,6 +948,7 @@ export const getVideosByCategory = async (categorySlug, page = 1, itemsPerPage =
           videoId: data.videoId || '',
           duration: data.duration || '',
           views: data.views || 0,
+          publishDate: data.publishDate || null,
           createdAt: data.createdAt?.toDate?.() || null,
           publishedAt: data.publishedAt?.toDate?.() || null,
         });
@@ -901,5 +959,53 @@ export const getVideosByCategory = async (categorySlug, page = 1, itemsPerPage =
   } catch (error) {
     console.error('Error getting videos by category:', error);
     return { success: false, error: error.message, videos: [] };
+  }
+};
+
+// ==================== TOP 10 VIDEO ====================
+
+export const getTop10Video = async () => {
+  try {
+    const videosRef = collection(db, VIDEOS_COLLECTION);
+    const q = query(
+      videosRef,
+      where('isTop10', '==', true),
+      where('status', '==', 'published'),
+      orderBy('publishDate', 'desc'), 
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log("No Top 10 video found");
+      return { success: false, video: null };
+    }
+    
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    
+    return {
+      success: true,
+      video: {
+        id: doc.id,
+        title: data.title || '',
+        slug: data.slug || '',
+        description: data.description || '',
+        category: data.category || '',
+        thumbnail: data.thumbnail || '',
+        videoId: data.videoId || '',
+        duration: data.duration || '',
+        views: data.views || 0,
+        isTop10: data.isTop10 || false,
+        publishDate: data.publishDate || null,
+        createdAt: data.createdAt?.toDate?.() || null,
+        publishedAt: data.publishedAt?.toDate?.() || null,
+        youtubeUrl: data.youtubeUrl || '',
+        videoType: data.videoType || 'standard',
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching Top 10 video:", error);
+    return { success: false, video: null };
   }
 };

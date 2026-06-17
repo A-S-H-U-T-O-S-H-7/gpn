@@ -295,7 +295,7 @@ export default function VideoDetailPage() {
       />
 
       <div className="min-h-screen bg-ghee dark:bg-slate-950 transition-colors duration-300">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
           {/* Back Button */}
           <div className="flex items-center gap-2 mb-6">
             <button
@@ -329,12 +329,7 @@ export default function VideoDetailPage() {
                   )}
                 </div>
 
-                {/* Category Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="inline-block px-3 py-1.5 bg-red text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-lg">
-                    {video.category || "Video"}
-                  </span>
-                </div>
+                
 
                 {/* Duration Badge */}
                 {video.duration && (
@@ -403,10 +398,10 @@ export default function VideoDetailPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={toggleLike}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
                     isLiked
                       ? "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-700 text-red"
                       : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-red-300 hover:text-red"

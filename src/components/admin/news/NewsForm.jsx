@@ -97,11 +97,7 @@ export default function NewsForm({ formData, errors, onInputChange, isDark }) {
               News Content
             </h2>
           </div>
-          {/* <FormatDescriptionButton
-            content={formData.content}
-            onFormatted={onInputChange}
-            size="sm"
-          /> */}
+          
         </div>
 
         <RichTextEditor

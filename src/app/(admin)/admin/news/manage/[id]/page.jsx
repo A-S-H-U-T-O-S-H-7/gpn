@@ -34,6 +34,7 @@ export default function ManageNewsPage() {
     isEditorPick: false,
     isTrending: false,
     isHero: false,
+    publishDate: new Date().toISOString().split('T')[0],
     featuredImage: null,
     featuredImagePreview: null,
     existingImageUrl: null,
@@ -66,6 +67,7 @@ export default function ManageNewsPage() {
               isEditorPick: news.isEditorPick || false,
               isTrending: news.isTrending || false,
               isHero: news.isHero || false,
+              publishDate: news.publishDate || new Date().toISOString().split('T')[0],
               featuredImage: null,
               featuredImagePreview: news.image || null,
               existingImageUrl: news.image || null,
@@ -125,6 +127,7 @@ export default function ManageNewsPage() {
         isEditorPick: formData.isEditorPick,
         isTrending: formData.isTrending,
         isHero: formData.isHero,
+        publishDate: formData.publishDate || new Date().toISOString().split('T')[0],
       };
 
       let result;

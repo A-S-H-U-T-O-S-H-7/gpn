@@ -36,7 +36,8 @@ export default function NewsTable({
               <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Image</th>
               <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Title</th>
               <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Created Date</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Publish Date</th>
               <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Views</th>
               <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
             </tr>
