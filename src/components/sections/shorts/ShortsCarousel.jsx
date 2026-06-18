@@ -12,14 +12,26 @@ export default function ShortsCarousel() {
   const [loading, setLoading] = useState(true);
   const [selectedShort, setSelectedShort] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [direction, setDirection] = useState(0); // -1 for left, 1 for right
+  const [direction, setDirection] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(380);
 
   const containerRef = useRef(null);
 
   useEffect(() => {
     fetchShorts();
+    updateContainerWidth();
+    window.addEventListener('resize', updateContainerWidth);
+    return () => window.removeEventListener('resize', updateContainerWidth);
   }, []);
+
+  const updateContainerWidth = () => {
+    if (containerRef.current) {
+      const width = containerRef.current.offsetWidth;
+      const cardWidth = Math.min(width - 32, 380);
+      setContainerWidth(cardWidth);
+    }
+  };
 
   const fetchShorts = async () => {
     setLoading(true);
@@ -52,33 +64,18 @@ export default function ShortsCarousel() {
     setIsModalOpen(true);
   };
 
-  // Handle drag end - Tinder style
   const handleDragEnd = (event, info) => {
-    const threshold = 80;
+    const threshold = 60;
     const offset = info.offset.x;
     
     if (offset < -threshold) {
-      // Swipe left - next card
       goToNext();
     } else if (offset > threshold) {
-      // Swipe right - previous card
       goToPrev();
     }
     setIsDragging(false);
   };
 
-  // Get card position in stack
-  const getCardPosition = (index) => {
-    const diff = (index - currentIndex + shorts.length) % shorts.length;
-    
-    // Only show current, next, and previous card
-    if (diff === 0) return 'active';
-    if (diff === 1 || diff === -(shorts.length - 1)) return 'next';
-    if (diff === shorts.length - 1 || diff === -1) return 'prev';
-    return 'hidden';
-  };
-
-  // Auto-play
   useEffect(() => {
     if (shorts.length === 0 || isModalOpen || isDragging) return;
     const timer = setInterval(goToNext, 5000);
@@ -88,7 +85,7 @@ export default function ShortsCarousel() {
   if (loading) {
     return (
       <div className="block md:hidden bg-gradient-to-b from-red-50 to-white dark:from-gray-900 dark:to-gray-800 py-8 px-4">
-        <div className="flex items-center justify-center h-[480px]">
+        <div className="flex items-center justify-center h-[460px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
         </div>
       </div>
@@ -97,14 +94,45 @@ export default function ShortsCarousel() {
 
   if (shorts.length === 0) return null;
 
-  // Get active card and background cards
   const activeCard = shorts[currentIndex];
   const nextCard = shorts[(currentIndex + 1) % shorts.length];
   const prevCard = shorts[(currentIndex - 1 + shorts.length) % shorts.length];
 
+  // Calculate responsive card sizes
+  const getCardSize = () => {
+    const width = containerWidth;
+    if (width < 300) {
+      return { 
+        activeScale: 0.9,      // Reduced active card size
+        nextScale: 0.78, 
+        prevScale: 0.72,
+        xOffset: 20, 
+        yOffset: 8 
+      };
+    } else if (width < 360) {
+      return { 
+        activeScale: 0.92,     // Reduced active card size
+        nextScale: 0.80, 
+        prevScale: 0.74,
+        xOffset: 25, 
+        yOffset: 10 
+      };
+    } else {
+      return { 
+        activeScale: 0.82,     // Reduced active card size from 1 to 0.88
+        nextScale: 0.78, 
+        prevScale: 0.72,
+        xOffset: 45, 
+        yOffset: 12 
+      };
+    }
+  };
+
+  const cardSize = getCardSize();
+
   const cardVariants = {
     active: {
-      scale: 1,
+      scale: cardSize.activeScale,  // Reduced scale for active card
       x: 0,
       y: 0,
       opacity: 1,
@@ -112,23 +140,23 @@ export default function ShortsCarousel() {
       transition: { type: "spring", stiffness: 300, damping: 30 }
     },
     next: {
-      scale: 0.88,
-      x: 55,
-      y: 18,
-      opacity: 0.75,
+      scale: cardSize.nextScale,
+      x: cardSize.xOffset,
+      y: cardSize.yOffset,
+      opacity: 0.7,
       zIndex: 20,
       transition: { type: "spring", stiffness: 300, damping: 30 }
     },
     prev: {
-      scale: 0.78,
-      x: -55,
-      y: 18,
-      opacity: 0.75,
+      scale: cardSize.prevScale,
+      x: -cardSize.xOffset,
+      y: cardSize.yOffset,
+      opacity: 0.7,
       zIndex: 20,
       transition: { type: "spring", stiffness: 300, damping: 30 }
     },
     hidden: {
-      scale: 0.7,
+      scale: 0.6,
       x: 0,
       y: 0,
       opacity: 0,
@@ -137,7 +165,6 @@ export default function ShortsCarousel() {
     }
   };
 
-  // Render a card
   const renderCard = (card, position, isActive = false) => {
     if (!card) return null;
     
@@ -153,7 +180,11 @@ export default function ShortsCarousel() {
         dragElastic={0.7}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
-        style={{ touchAction: 'none' }}
+        style={{ 
+          touchAction: 'none',
+          width: '100%',
+          height: '100%'
+        }}
         onClick={() => isActive && handleCardClick(card)}
       >
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50">
@@ -209,7 +240,7 @@ export default function ShortsCarousel() {
 
   return (
     <>
-      <div className="block md:hidden bg-gradient-to-b from-red-50 to-white dark:from-gray-900 dark:to-gray-800 py-6 px-4">
+      <div className="block md:hidden bg-gradient-to-b from-red-50 to-white dark:from-gray-900 dark:to-gray-800 py-6 px-3 sm:px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -227,21 +258,33 @@ export default function ShortsCarousel() {
           </span>
         </div>
 
-        {/* Carousel */}
+        {/* Carousel - Stack Card Design */}
         <div 
           ref={containerRef}
-          className="relative mx-auto"
-          style={{ height: "460px", maxWidth: "380px" }}
+          className="relative mx-auto w-full"
+          style={{ 
+            height: "480px",
+            maxWidth: "100%"
+          }}
         >
-          <div className="relative w-full h-full">
-            {/* Previous Card (behind left) */}
-            {renderCard(prevCard, 'prev')}
-            
-            {/* Next Card (behind right) */}
-            {renderCard(nextCard, 'next')}
-            
-            {/* Active Card (on top, draggable) */}
-            {renderCard(activeCard, 'active', true)}
+          <div className="relative w-full h-full flex items-center justify-center px-1 sm:px-4">
+            <div 
+              className="relative"
+              style={{ 
+                width: "100%",
+                maxWidth: "360px",
+                height: "100%"
+              }}
+            >
+              {/* Previous Card (behind left) */}
+              {renderCard(prevCard, 'prev')}
+              
+              {/* Next Card (behind right) */}
+              {renderCard(nextCard, 'next')}
+              
+              {/* Active Card (on top, draggable) */}
+              {renderCard(activeCard, 'active', true)}
+            </div>
           </div>
         </div>
 
