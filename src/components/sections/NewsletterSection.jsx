@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Mail, Send, CheckCircle, AlertCircle, Bell } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { subscribeUser, getSubscriptionStatus } from "@/lib/services/subscriptionService";
 import useAuthStore from "@/lib/stores/useAuthStore";
 
 export default function NewsletterSection() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState("idle");
@@ -26,6 +28,14 @@ export default function NewsletterSection() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // If user is not logged in, redirect to signup page
+    if (!isAuthenticated) {
+      toast.error("Please sign up to subscribe to our newsletter");
+      router.push("/signup?redirect=newsletter");
+      return;
+    }
+    
     if (!email || !email.includes("@")) {
       setStatus("error");
       setMessage("Please enter a valid email address");

@@ -8,6 +8,55 @@ import { getCategoryBySlug } from "@/lib/services/categoryService";
 import { getNewsByCategory } from "@/lib/services/newsService";
 import { getVideosByCategory } from "@/lib/services/videoService";
 
+// Helper function to strip HTML tags
+const stripHtml = (html) => {
+  if (!html) return "";
+  
+  // Create a temporary div element
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  
+  // Get the text content (automatically strips HTML)
+  const text = tmp.textContent || tmp.innerText || '';
+  
+  // Clean up extra whitespace
+  return text
+    .replace(/\u200B/g, '') // Remove zero-width spaces
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Alternative helper that works on server-side too
+const stripHtmlSafe = (html) => {
+  if (!html) return "";
+  
+  return html
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\u200B/g, '') // Remove zero-width spaces
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Helper to clean content (title, excerpt, description)
+const cleanContent = (content) => {
+  if (!content) return "";
+  
+  // If running in browser, use DOM method (more reliable)
+  if (typeof window !== 'undefined') {
+    return stripHtml(content);
+  }
+  
+  // Fallback for server-side
+  return stripHtmlSafe(content);
+};
+
 export default function CategoryPage() {
   const { slug } = useParams();
   const router = useRouter();
@@ -29,10 +78,27 @@ export default function CategoryPage() {
         setCategory(categoryResult.category);
 
         const newsResult = await getNewsByCategory(slug);
-        if (newsResult.success) setNews(newsResult.news);
+        if (newsResult.success) {
+          // Clean HTML from news items
+          const cleanedNews = newsResult.news.map(item => ({
+            ...item,
+            title: cleanContent(item.title),
+            excerpt: cleanContent(item.excerpt),
+            description: cleanContent(item.description),
+          }));
+          setNews(cleanedNews);
+        }
 
         const videosResult = await getVideosByCategory(slug);
-        if (videosResult.success) setVideos(videosResult.videos);
+        if (videosResult.success) {
+          // Clean HTML from video items
+          const cleanedVideos = videosResult.videos.map(item => ({
+            ...item,
+            title: cleanContent(item.title),
+            description: cleanContent(item.description),
+          }));
+          setVideos(cleanedVideos);
+        }
       } catch (error) {
         console.error("Error fetching category data:", error);
       } finally {
@@ -107,11 +173,9 @@ export default function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-ghee dark:bg-slate-900/50">
-
       {/* Category Hero Header */}
       <div className="bg-ghee dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
-
           {/* Back */}
           <button
             onClick={() => router.back()}
@@ -147,7 +211,7 @@ export default function CategoryPage() {
               </div>
               {category?.description && (
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-1.5 leading-relaxed">
-                  {category.description}
+                  {cleanContent(category.description)}
                 </p>
               )}
               {/* Accent underline */}

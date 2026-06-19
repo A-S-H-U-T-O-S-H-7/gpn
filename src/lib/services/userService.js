@@ -6,6 +6,7 @@ import {
   getDoc, 
   updateDoc, 
   deleteDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -13,6 +14,7 @@ import {
   limit
 } from 'firebase/firestore';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
+import { getActiveSubscribersCount, isUserSubscribed } from './subscriptionService';
 
 const USERS_COLLECTION = 'users';
 const ITEMS_PER_PAGE = 10;
@@ -26,22 +28,41 @@ export const getUsers = async (page = 1, searchTerm = '', statusFilter = 'all', 
     const q = query(usersRef, ...constraints);
     const snapshot = await getDocs(q);
     
+    // Get all subscribed emails from subscribers collection for cross-reference
+    const subscribersRef = collection(db, 'subscribers');
+    const subscribersQuery = query(subscribersRef, where('status', '==', 'active'));
+    const subscribersSnapshot = await getDocs(subscribersQuery);
+    
+    const subscribedEmails = new Set();
+    subscribersSnapshot.forEach(doc => {
+      const email = doc.data().email?.toLowerCase();
+      if (email) subscribedEmails.add(email);
+    });
+    
     let users = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    for (const document of snapshot.docs) {
+      const data = document.data();
+      const userEmail = data.email?.toLowerCase();
+      
+      // Check isSubscribed from both user document AND subscribers collection
+      const isSubscribed = data.isSubscribed === true || subscribedEmails.has(userEmail);
+      
       users.push({
-        id: doc.id,
-        uid: data.uid || doc.id,
+        id: document.id,
+        uid: data.uid || document.id,
         name: data.name || data.displayName || 'User',
         email: data.email || '',
         avatar: data.avatar || data.photoURL || null,
+        phone: data.phone || null,
         role: data.role || 'user',
         status: data.status || 'active',
-        isSubscribed: data.isSubscribed || false,
+        isSubscribed: isSubscribed,
+        preferences: data.preferences || { emailNotifications: true, language: 'en' },
         createdAt: data.createdAt?.toDate?.() || null,
         lastLoginAt: data.lastLoginAt?.toDate?.() || null,
+        updatedAt: data.updatedAt?.toDate?.() || null,
       });
-    });
+    }
     
     // Apply status filter
     if (statusFilter !== 'all') {
@@ -92,6 +113,11 @@ export const getUserById = async (userId) => {
     }
     
     const data = userSnap.data();
+    const userEmail = data.email?.toLowerCase();
+    
+    // Check subscription status from subscribers collection
+    const subscriptionCheck = await isUserSubscribed(userEmail);
+    
     return {
       success: true,
       user: {
@@ -100,11 +126,14 @@ export const getUserById = async (userId) => {
         name: data.name || data.displayName || 'User',
         email: data.email || '',
         avatar: data.avatar || data.photoURL || null,
+        phone: data.phone || null,
         role: data.role || 'user',
         status: data.status || 'active',
-        isSubscribed: data.isSubscribed || false,
+        isSubscribed: data.isSubscribed === true || subscriptionCheck.isSubscribed,
+        preferences: data.preferences || { emailNotifications: true, language: 'en' },
         createdAt: data.createdAt?.toDate?.() || null,
         lastLoginAt: data.lastLoginAt?.toDate?.() || null,
+        updatedAt: data.updatedAt?.toDate?.() || null,
       }
     };
   } catch (error) {
@@ -149,17 +178,60 @@ export const updateUserSubscription = async (userId, isSubscribed, adminData) =>
     const userRef = doc(db, USERS_COLLECTION, userId);
     const user = await getUserById(userId);
     
+    if (!user.success || !user.user) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    // Update user document
     await updateDoc(userRef, {
       isSubscribed: isSubscribed,
       updatedAt: serverTimestamp(),
       updatedBy: adminData.id
     });
     
+    // Sync with subscribers collection
+    const subscribersRef = collection(db, 'subscribers');
+    const q = query(subscribersRef, where('email', '==', user.user.email?.toLowerCase()));
+    const snapshot = await getDocs(q);
+    
+    if (isSubscribed) {
+      // Create or reactivate subscription
+      if (!snapshot.empty) {
+        const subDoc = snapshot.docs[0];
+        await updateDoc(doc(db, 'subscribers', subDoc.id), {
+          status: 'active',
+          userId: userId,
+          updatedAt: serverTimestamp(),
+          subscribedAt: subDoc.data().subscribedAt || serverTimestamp(),
+        });
+      } else {
+        await setDoc(doc(db, 'subscribers', user.user.email?.toLowerCase()), {
+          email: user.user.email?.toLowerCase(),
+          name: user.user.name || '',
+          userId: userId,
+          status: 'active',
+          source: 'admin_manual',
+          subscribedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } else {
+      // Deactivate subscription
+      if (!snapshot.empty) {
+        const subDoc = snapshot.docs[0];
+        await updateDoc(doc(db, 'subscribers', subDoc.id), {
+          status: 'inactive',
+          unsubscribedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    }
+    
     await logActivity({
       action: isSubscribed ? 'SUBSCRIBE_ON' : 'SUBSCRIBE_OFF',
       entityType: ActivityEntityTypes.USER,
       entityId: userId,
-      entityTitle: user.user?.name || 'User',
+      entityTitle: user.user.name || 'User',
       details: `${isSubscribed ? 'Subscribed to' : 'Unsubscribed from'} newsletter`,
       adminId: adminData.id,
       adminName: adminData.name,
@@ -176,7 +248,32 @@ export const updateUserSubscription = async (userId, isSubscribed, adminData) =>
 // Delete user
 export const deleteUser = async (userId, userName, adminData) => {
   try {
-    await deleteDoc(doc(db, USERS_COLLECTION, userId));
+    // Get user data before deletion
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      
+      // Also handle subscriber collection cleanup
+      if (userData.email) {
+        const subscribersRef = collection(db, 'subscribers');
+        const q = query(subscribersRef, where('email', '==', userData.email.toLowerCase()));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const subDoc = snapshot.docs[0];
+          await updateDoc(doc(db, 'subscribers', subDoc.id), {
+            status: 'inactive',
+            userId: null,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+    }
+    
+    // Delete user document
+    await deleteDoc(userRef);
     
     await logActivity({
       action: ActivityActions.DELETE,
@@ -199,25 +296,48 @@ export const deleteUser = async (userId, userName, adminData) => {
 // Export subscribed users to CSV
 export const exportSubscribedUsersToCSV = async () => {
   try {
+    // Get subscribed users from both collections
     const usersRef = collection(db, USERS_COLLECTION);
-    const q = query(usersRef, where('isSubscribed', '==', true));
-    const snapshot = await getDocs(q);
+    const usersSnapshot = await getDocs(usersRef);
     
-    const subscribers = [];
-    snapshot.forEach(doc => {
+    const subscribersRef = collection(db, 'subscribers');
+    const subscribersQuery = query(subscribersRef, where('status', '==', 'active'));
+    const subscribersSnapshot = await getDocs(subscribersQuery);
+    
+    // Create set of subscribed emails
+    const subscribedEmails = new Map();
+    
+    // Add from subscribers collection
+    subscribersSnapshot.forEach(doc => {
       const data = doc.data();
-      subscribers.push({
+      subscribedEmails.set(data.email?.toLowerCase(), {
         email: data.email,
         name: data.name || '',
-        subscribedAt: data.createdAt?.toDate?.() || null,
+        subscribedAt: data.subscribedAt?.toDate?.() || null,
       });
     });
     
+    // Add from users collection (those marked as subscribed)
+    usersSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.isSubscribed === true && data.email) {
+        const email = data.email.toLowerCase();
+        if (!subscribedEmails.has(email)) {
+          subscribedEmails.set(email, {
+            email: data.email,
+            name: data.name || '',
+            subscribedAt: data.createdAt?.toDate?.() || null,
+          });
+        }
+      }
+    });
+    
+    // Convert to CSV
     const csvRows = [
       ['Email', 'Name', 'Subscribed Date']
     ];
     
-    subscribers.forEach(subscriber => {
+    subscribedEmails.forEach(subscriber => {
       csvRows.push([
         subscriber.email,
         subscriber.name,
@@ -226,7 +346,7 @@ export const exportSubscribedUsersToCSV = async () => {
     });
     
     const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    return { success: true, csv: csvContent, count: subscribers.length };
+    return { success: true, csv: csvContent, count: subscribedEmails.size };
   } catch (error) {
     console.error('Error exporting subscribers:', error);
     return { success: false, csv: '', count: 0 };
@@ -239,18 +359,24 @@ export const getUserStats = async () => {
     const usersRef = collection(db, USERS_COLLECTION);
     const snapshot = await getDocs(usersRef);
     
+    // Get active subscribers count
+    const subscribersCount = await getActiveSubscribersCount();
+    
     let totalUsers = 0;
     let activeUsers = 0;
-    let subscribedUsers = 0;
     let blockedUsers = 0;
+    let subscribedUsersFromUsers = 0;
     
     snapshot.forEach(doc => {
       const data = doc.data();
       totalUsers++;
       if (data.status === 'active') activeUsers++;
       if (data.status === 'blocked') blockedUsers++;
-      if (data.isSubscribed === true) subscribedUsers++;
+      if (data.isSubscribed === true) subscribedUsersFromUsers++;
     });
+    
+    // Use the higher count between users collection and subscribers collection
+    const subscribedUsers = Math.max(subscribedUsersFromUsers, subscribersCount.count || 0);
     
     return {
       success: true,
