@@ -180,6 +180,7 @@ export const createVideo = async (videoData, adminData) => {
       isTop10: videoData.isTop10 || false,
       publishDate: videoData.publishDate || new Date().toISOString().split('T')[0],
       views: 0,
+      likes: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       publishedAt: videoData.status === 'published' ? serverTimestamp() : null,
@@ -428,6 +429,7 @@ export const getVideoById = async (videoId) => {
         isTop10: data.isTop10 || false,
         publishDate: data.publishDate || null,
         views: data.views || 0,
+        likes: data.likes || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         updatedAt: data.updatedAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -466,6 +468,7 @@ export const getVideoBySlug = async (slug) => {
         videoId: data.videoId || '',
         duration: data.duration || '',
         views: data.views || 0,
+        likes: data.likes || 0,
         publishDate: data.publishDate || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
@@ -479,15 +482,20 @@ export const getVideoBySlug = async (slug) => {
 
 // ==================== ADMIN: GET ALL VIDEOS ====================
 
-export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all', featuredFilter = 'all') => {
+export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all', featuredFilter = 'all', videoTypeFilter = 'all') => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
-    let constraints = [orderBy('createdAt', 'desc'), limit(100)];
+    let constraints = [orderBy('createdAt', 'desc')];
     
     if (statusFilter !== 'all') {
       constraints.unshift(where('status', '==', statusFilter));
     }
     
+    if (videoTypeFilter !== 'all') {
+      constraints.unshift(where('videoType', '==', videoTypeFilter));
+    }
+    
+    // Get ALL documents (no limit)
     const q = query(videosRef, ...constraints);
     const snapshot = await getDocs(q);
     
@@ -510,6 +518,7 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         isTop10: data.isTop10 || false,
         publishDate: data.publishDate || null,
         views: data.views || 0,
+        likes: data.likes || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
@@ -526,6 +535,14 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
         videos = videos.filter(video => video.isHero === true);
       } else if (featuredFilter === 'top10') {
         videos = videos.filter(video => video.isTop10 === true);
+      } else if (featuredFilter === 'normal') {
+        videos = videos.filter(video => 
+          !video.isFeatured && 
+          !video.isEditorPick && 
+          !video.isTrending && 
+          !video.isHero && 
+          !video.isTop10
+        );
       }
     }
     
@@ -552,32 +569,34 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
   }
 };
 
-// ==================== HOMEPAGE: LATEST VIDEOS ====================
+// ==================== FIXED: HOMEPAGE LATEST VIDEOS ====================
 
 export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
   try {
     const videosRef = collection(db, VIDEOS_COLLECTION);
+    // Get ALL published videos (no limit)
     const constraints = [
       where('status', '==', 'published'),
-      orderBy('publishDate', 'desc'),
-      limit(itemsPerPage)
+      orderBy('publishDate', 'desc')
     ];
     
     const q = query(videosRef, ...constraints);
     const snapshot = await getDocs(q);
     
-    const videos = [];
+    const allVideos = [];
     snapshot.forEach(doc => {
       const data = doc.data();
       const videoType = data.videoType || 'standard';
       
+      // Only include standard videos
       if (videoType === 'standard') {
-        videos.push({
+        allVideos.push({
           id: doc.id,
           title: data.title || '',
           slug: data.slug || '',
           duration: data.duration || '',
           views: data.views || 0,
+          likes: data.likes || 0,
           date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
           category: data.category || '',
           thumbnail: data.thumbnail || '',
@@ -588,71 +607,111 @@ export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
       }
     });
     
-    const formattedVideos = videos.map(video => ({
+    // Sort by date (newest first)
+    allVideos.sort((a, b) => b.date - a.date);
+    
+    // Get total count
+    const totalVideos = allVideos.length;
+    
+    // Paginate
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedVideos = allVideos.slice(startIndex, endIndex);
+    
+    const formattedVideos = paginatedVideos.map(video => ({
       ...video,
       formattedDate: getTimeAgo(video.date),
       formattedViews: formatViews(video.views),
+      formattedLikes: formatViews(video.likes || 0),
     }));
+    
+    // Check if there are more videos
+    const hasMore = endIndex < totalVideos;
     
     return { 
       success: true, 
       videos: formattedVideos, 
-      hasMore: videos.length === itemsPerPage 
+      hasMore: hasMore,
+      totalVideos: totalVideos,
+      lastVisible: paginatedVideos.length > 0 ? paginatedVideos[paginatedVideos.length - 1] : null
     };
   } catch (error) {
     console.error('Error getting latest videos:', error);
-    return { success: false, videos: [], hasMore: false };
+    return { success: false, videos: [], hasMore: false, totalVideos: 0 };
   }
 };
 
-export const getMoreVideos = async (lastDoc, itemsPerPage = 10) => {
+// ==================== FIXED: GET MORE VIDEOS ====================
+
+export const getMoreVideos = async (lastVideo, itemsPerPage = 12) => {
   try {
+    // Since we're paginating in memory, we need to get all videos again
+    // But we can use the last video date to filter
     const videosRef = collection(db, VIDEOS_COLLECTION);
-    const q = query(
-      videosRef,
+    const constraints = [
       where('status', '==', 'published'),
-      orderBy('publishDate', 'desc'),
-      startAfter(lastDoc),
-      limit(itemsPerPage)
-    );
+      orderBy('publishDate', 'desc')
+    ];
+    
+    const q = query(videosRef, ...constraints);
     const snapshot = await getDocs(q);
     
-    const videos = [];
-    let lastVisible = null;
-    
+    const allVideos = [];
     snapshot.forEach(doc => {
       const data = doc.data();
       const videoType = data.videoType || 'standard';
       
       if (videoType === 'standard') {
-        videos.push({
+        allVideos.push({
           id: doc.id,
           title: data.title || '',
           slug: data.slug || '',
           duration: data.duration || '',
           views: data.views || 0,
+          likes: data.likes || 0,
           date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
           category: data.category || '',
           thumbnail: data.thumbnail || '',
           videoId: data.videoId || '',
           isTrending: data.isTrending || false,
           videoType: videoType,
+          docRef: doc // Keep reference for ordering
         });
-        lastVisible = doc;
       }
     });
     
-    const formattedVideos = videos.map(video => ({
+    // Sort by date (newest first)
+    allVideos.sort((a, b) => b.date - a.date);
+    
+    // Find the index of the last video
+    let startIndex = 0;
+    if (lastVideo) {
+      const lastVideoId = lastVideo.id || lastVideo;
+      const foundIndex = allVideos.findIndex(v => v.id === lastVideoId);
+      if (foundIndex !== -1) {
+        startIndex = foundIndex + 1;
+      }
+    }
+    
+    // Get next batch
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedVideos = allVideos.slice(startIndex, endIndex);
+    
+    const formattedVideos = paginatedVideos.map(video => ({
       ...video,
       formattedDate: getTimeAgo(video.date),
       formattedViews: formatViews(video.views),
+      formattedLikes: formatViews(video.likes || 0),
     }));
+    
+    // Check if there are more videos
+    const hasMore = endIndex < allVideos.length;
     
     return { 
       success: true, 
       videos: formattedVideos, 
-      lastVisible, 
-      hasMore: videos.length === itemsPerPage 
+      hasMore: hasMore,
+      lastVisible: paginatedVideos.length > 0 ? paginatedVideos[paginatedVideos.length - 1] : null
     };
   } catch (error) {
     console.error('Error getting more videos:', error);
@@ -668,7 +727,7 @@ export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
     let constraints = [
       where('status', '==', 'published'),
       where('videoType', 'in', ['short', 'reel']),
-      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
+      orderBy('publishDate', 'desc'),
       limit(limitCount)
     ];
     
@@ -694,6 +753,7 @@ export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
         duration: data.duration || '',
         category: data.category || '',
         views: data.views || 0,
+        likes: data.likes || 0,
         videoType: data.videoType || 'short',
         date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
         publishedAt: data.publishedAt?.toDate() || null,
@@ -705,6 +765,7 @@ export const getLatestShorts = async (limitCount = 10, lastDoc = null) => {
       ...short,
       formattedDate: getTimeAgo(short.date),
       formattedViews: formatViews(short.views),
+      formattedLikes: formatViews(short.likes || 0),
     }));
     
     return { 
@@ -779,7 +840,7 @@ export const getEditorPickVideos = async (limit = 4) => {
       videosRef, 
       where('status', '==', 'published'),
       where('isEditorPick', '==', true),
-      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
+      orderBy('publishDate', 'desc'),
       limit(limit)
     );
     const snapshot = await getDocs(q);
@@ -843,7 +904,7 @@ export const getFeaturedVideos = async (maxItems = 8) => {
       videosRef, 
       where('status', '==', 'published'),
       where('isFeatured', '==', true),
-      orderBy('publishDate', 'desc'),  // ✅ FIXED: Now sorted by publishDate
+      orderBy('publishDate', 'desc'),
       limit(maxItems)
     );
     const snapshot = await getDocs(q);
@@ -948,6 +1009,7 @@ export const getVideosByCategory = async (categorySlug, page = 1, itemsPerPage =
           videoId: data.videoId || '',
           duration: data.duration || '',
           views: data.views || 0,
+          likes: data.likes || 0,
           publishDate: data.publishDate || null,
           createdAt: data.createdAt?.toDate?.() || null,
           publishedAt: data.publishedAt?.toDate?.() || null,

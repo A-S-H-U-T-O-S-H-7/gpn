@@ -19,7 +19,6 @@ import {
 } from "@/lib/services/settingsService";
 
 const tabs = [
-  // { id: "general", name: "General", icon: "⚙️" },
   { id: "seo", name: "SEO", icon: "🔍" },
   { id: "social", name: "Social Links", icon: "📱" },
   { id: "contact", name: "Contact", icon: "📞" }, 

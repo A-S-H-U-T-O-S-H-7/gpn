@@ -169,7 +169,7 @@ export const createNews = async (newsData, imageFile, adminData) => {
       isTrending: newsData.isTrending || false,
       isHero: newsData.isHero || false,
       editorPickOrder: newsData.isEditorPick ? (newsData.editorPickOrder || 0) : 0,
-      publishDate: newsData.publishDate || new Date().toISOString().split('T')[0], // ✅ ADDED
+      publishDate: newsData.publishDate || new Date().toISOString().split('T')[0],
       views: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -229,7 +229,7 @@ export const updateNews = async (newsId, newsData, imageFile, existingImageUrl, 
       isTrending: newsData.isTrending || false,
       isHero: newsData.isHero || false,
       editorPickOrder: newsData.isEditorPick ? (newsData.editorPickOrder || 0) : 0,
-      publishDate: newsData.publishDate || null, // ✅ ADDED
+      publishDate: newsData.publishDate || null,
       updatedAt: serverTimestamp(),
     };
     
@@ -380,7 +380,7 @@ export const getNewsById = async (newsId) => {
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
         isHero: data.isHero || false,
-        publishDate: data.publishDate || null, // ✅ ADDED
+        publishDate: data.publishDate || null,
         editorPickOrder: data.editorPickOrder || 0,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
@@ -394,19 +394,19 @@ export const getNewsById = async (newsId) => {
   }
 };
 
-// ==================== ADMIN: GET ALL NEWS ====================
+// ==================== ADMIN: GET ALL NEWS (FIXED - REMOVED 100 LIMIT) ====================
 
 export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', typeFilter = 'all') => {
   try {
     const newsRef = collection(db, NEWS_COLLECTION);
     let constraints = [orderBy('createdAt', 'desc')];
     
+    // Apply status filter
     if (statusFilter !== 'all') {
       constraints.push(where('status', '==', statusFilter));
     }
     
-    constraints.push(limit(100));
-    
+    // REMOVED the limit(100) - now gets ALL documents
     const q = query(newsRef, ...constraints);
     const snapshot = await getDocs(q);
     
@@ -424,13 +424,14 @@ export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', t
         isEditorPick: data.isEditorPick || false,
         isTrending: data.isTrending || false,
         isHero: data.isHero || false,
-        publishDate: data.publishDate || null, // ✅ ADDED
+        publishDate: data.publishDate || null,
         views: data.views || 0,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
     });
     
+    // Apply type filter
     if (typeFilter !== 'all') {
       if (typeFilter === 'breaking') {
         news = news.filter(item => item.isBreaking === true);
@@ -443,12 +444,14 @@ export const getNews = async (page = 1, searchTerm = '', statusFilter = 'all', t
       }
     }
     
+    // Apply search filter
     if (searchTerm) {
       news = news.filter(item => 
         item.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
+    // Calculate pagination
     const totalItems = news.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -473,7 +476,7 @@ export const getLatestNews = async (page = 1, itemsPerPage = 20, filter = 'all')
     const newsRef = collection(db, NEWS_COLLECTION);
     const constraints = [
       where('status', '==', 'published'),
-      orderBy('publishDate', 'desc'), // ✅ CHANGED: Sort by publishDate
+      orderBy('publishDate', 'desc'),
       limit(itemsPerPage)
     ];
     
@@ -492,7 +495,7 @@ export const getLatestNews = async (page = 1, itemsPerPage = 20, filter = 'all')
         image: data.image || null,
         category: data.category || '',
         views: data.views || 0,
-        date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()), // ✅ CHANGED
+        date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
         isBreaking: data.isBreaking || false,
         isTrending: data.isTrending || false,
         isEditorPick: data.isEditorPick || false,
@@ -538,7 +541,7 @@ export const getMoreNews = async (lastDoc, itemsPerPage = 10, filter = 'all') =>
     const q = query(
       newsRef,
       where('status', '==', 'published'),
-      orderBy('publishDate', 'desc'), // ✅ CHANGED: Sort by publishDate
+      orderBy('publishDate', 'desc'),
       startAfter(lastDoc),
       limit(itemsPerPage)
     );
@@ -557,7 +560,7 @@ export const getMoreNews = async (lastDoc, itemsPerPage = 10, filter = 'all') =>
         image: data.image || null,
         category: data.category || '',
         views: data.views || 0,
-        date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()), // ✅ CHANGED
+        date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
         isBreaking: data.isBreaking || false,
         isTrending: data.isTrending || false,
         isEditorPick: data.isEditorPick || false,
@@ -622,7 +625,7 @@ export const getNewsBySlug = async (slug) => {
         category: data.category || '',
         image: data.image || null,
         views: data.views || 0,
-        publishDate: data.publishDate || null, // ✅ ADDED
+        publishDate: data.publishDate || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       }
@@ -641,7 +644,7 @@ export const getNewsByCategory = async (categorySlug, page = 1, itemsPerPage = 1
     const constraints = [
       where('status', '==', 'published'),
       where('category', '==', categorySlug),
-      orderBy('publishDate', 'desc'), // ✅ CHANGED: Sort by publishDate
+      orderBy('publishDate', 'desc'),
       limit(itemsPerPage)
     ];
     
@@ -658,7 +661,7 @@ export const getNewsByCategory = async (categorySlug, page = 1, itemsPerPage = 1
         excerpt: data.excerpt || '',
         image: data.image || null,
         views: data.views || 0,
-        publishDate: data.publishDate || null, // ✅ ADDED
+        publishDate: data.publishDate || null,
         createdAt: data.createdAt?.toDate?.() || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
@@ -680,7 +683,7 @@ export const getBreakingNews = async (maxlimit = 10) => {
       newsRef,
       where('status', '==', 'published'),
       where('isBreaking', '==', true),
-      orderBy('publishDate', 'desc'), // ✅ CHANGED: Sort by publishDate
+      orderBy('publishDate', 'desc'),
       limit(maxlimit)
     );
     const snapshot = await getDocs(q);
@@ -692,7 +695,7 @@ export const getBreakingNews = async (maxlimit = 10) => {
         id: doc.id,
         title: data.title || '',
         slug: data.slug || '',
-        publishDate: data.publishDate || null, // ✅ ADDED
+        publishDate: data.publishDate || null,
         publishedAt: data.publishedAt?.toDate?.() || null,
       });
     });

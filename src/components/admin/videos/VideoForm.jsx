@@ -5,7 +5,6 @@ import { Video, Clock, Tag, FileText, Globe, Hash } from "lucide-react";
 import RichTextEditor from "@/components/admin/blogs/RichTextEditor";
 import { FaYoutube } from "react-icons/fa";
 import AIGenerateButton from "@/components/admin/AIGenerateButton";
-import FormatDescriptionButton from "@/components/admin/FormatDescriptionButton";
 
 const generateSlug = (title) => {
   return title

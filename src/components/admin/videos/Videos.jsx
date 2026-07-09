@@ -19,6 +19,7 @@ export default function AdminVideosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [featuredFilter, setFeaturedFilter] = useState("all");
+  const [videoTypeFilter, setVideoTypeFilter] = useState("all"); // NEW
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -27,7 +28,13 @@ export default function AdminVideosPage() {
   const fetchVideos = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getVideos(currentPage, searchTerm, statusFilter, featuredFilter);
+      const result = await getVideos(
+        currentPage, 
+        searchTerm, 
+        statusFilter, 
+        featuredFilter,
+        videoTypeFilter // NEW
+      );
       if (result.success) {
         setVideos(result.videos);
         setTotalPages(result.totalPages);
@@ -41,7 +48,7 @@ export default function AdminVideosPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter, featuredFilter]);
+  }, [currentPage, searchTerm, statusFilter, featuredFilter, videoTypeFilter]);
 
   useEffect(() => {
     fetchVideos();
@@ -93,6 +100,12 @@ export default function AdminVideosPage() {
     setCurrentPage(1);
   };
 
+  // Reset to page 1 when filters change
+  const handleFilterChange = (setter) => (e) => {
+    setter(e.target.value);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="pt-6">
       {/* Header */}
@@ -125,8 +138,8 @@ export default function AdminVideosPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -143,7 +156,7 @@ export default function AdminVideosPage() {
         
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={handleFilterChange(setStatusFilter)}
           className={`px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none cursor-pointer ${
             isDarkMode
               ? "bg-gray-800 border-red-500/40 text-white focus:border-red"
@@ -155,9 +168,25 @@ export default function AdminVideosPage() {
           <option value="draft">Draft</option>
         </select>
 
+        {/* NEW: Video Type Filter */}
+        <select
+          value={videoTypeFilter}
+          onChange={handleFilterChange(setVideoTypeFilter)}
+          className={`px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none cursor-pointer ${
+            isDarkMode
+              ? "bg-gray-800 border-red-500/40 text-white focus:border-red"
+              : "bg-white border-red-300 text-gray-900 focus:border-red"
+          }`}
+        >
+          <option value="all">All Types</option>
+          <option value="standard">📹 Standard</option>
+          <option value="short">📱 Shorts</option>
+          <option value="reel">🎬 Reels</option>
+        </select>
+
         <select
           value={featuredFilter}
-          onChange={(e) => setFeaturedFilter(e.target.value)}
+          onChange={handleFilterChange(setFeaturedFilter)}
           className={`px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-red/20 focus:outline-none cursor-pointer ${
             isDarkMode
               ? "bg-gray-800 border-red-500/40 text-white focus:border-red"
@@ -165,15 +194,20 @@ export default function AdminVideosPage() {
           }`}
         >
           <option value="all">All Videos</option>
-          <option value="featured">Featured Videos</option>
-          <option value="normal">Normal Videos</option>
+          <option value="featured">⭐ Featured</option>
+          <option value="editor_pick">📝 Editor's Pick</option>
+          <option value="trending">🔥 Trending</option>
+          <option value="hero">🏆 Hero</option>
+          <option value="top10">🔝 Top 10</option>
+          <option value="normal">📋 Normal</option>
         </select>
       </div>
 
       {/* Total Records */}
-      {!loading && videos.length > 0 && (
+      {!loading && (
         <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           Total: {totalItems} video{totalItems !== 1 ? 's' : ''}
+          {videoTypeFilter !== 'all' && ` (${videoTypeFilter})`}
         </div>
       )}
 
