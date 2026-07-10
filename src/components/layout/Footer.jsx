@@ -266,6 +266,7 @@ export default function Footer() {
                 ALL TIME DATA
               </a>
             </p>
+            <p className="text-slate-950" >Made By Ashutosh Mohanty</p>
           </div>
         </div>
       </div>
