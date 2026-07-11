@@ -13,22 +13,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "GPN - Great Post News",
-  description: "Video-first digital news platform",
-  keywords: "news, live tv, breaking news, global news, world news, politics, technology, sports, entertainment",
-  authors: [{ name: "GPN" }],
+  title: "GPN News – India's First Live Online News Channel",
+  description: "Watch live TV, breaking news & political debates on GPN — India's first online news channel. Catch up on India politics, sports & entertainment 24x7.",
+  keywords: "great post news, gpn, live, breaking, trending, latest, top 10, halchal, video, news",
+  authors: [{ name: "Great Post News" }],
   robots: "index, follow",
+  alternates: {
+    canonical: "https://www.greatpostnews.com/",
+  },
   openGraph: {
-    title: "GPN - Great Post News",
-    description: "Your video-first news platform for breaking news and live updates",
+    title: "GPN News – India's First Live Online News Channel",
+    description: "Watch live TV, breaking news & political debates on GPN — India's first online news channel.",
+    url: "https://www.greatpostnews.com/",
+    siteName: "Great Post News",
     type: "website",
     locale: "en_US",
-    siteName: "Great Post News",
   },
   twitter: {
     card: "summary_large_image",
-    title: "GPN - Great Post News",
-    description: "Your video-first news platform for breaking news and live updates",
+    title: "GPN News – India's First Live Online News Channel",
+    description: "Watch live TV, breaking news & political debates on GPN.",
+  },
+  verification: {
+    google: "qWSDEu_EFRORjEmGtEDprGbN_XGTyzkF-iC0AqrIxhg", // Replace with your actual code
   },
 };
 
@@ -40,6 +47,13 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="qWSDEu_EFRORjEmGtEDprGbN_XGTyzkF-iC0AqrIxhg" />
+        
+        {/* Canonical URL */}
+        <link rel="canonical" href="https://www.greatpostnews.com/" />
+      </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
       </body>

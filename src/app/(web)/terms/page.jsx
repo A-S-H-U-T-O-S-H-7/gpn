@@ -8,6 +8,16 @@ import {
 import {motion} from "framer-motion";
 import { useRouter } from "next/navigation";
 
+export const metadata = {
+  title: "Terms of Service – GPN News | Usage Terms & Rules",
+  description: "Read GPN News's terms of service to understand the rules, rights, and responsibilities that apply when you use our website, app, and live TV streaming.",
+  alternates: {
+    canonical: "https://www.greatpostnews.com/terms",
+  },
+  robots: "noindex, follow",
+};
+
+
 const sections = [
   {
     icon: <FileText className="w-5 h-5" />,
@@ -246,6 +256,8 @@ const sections = [
     ),
   },
 ];
+
+
 
 export default function TermsPage() {
       const router = useRouter();

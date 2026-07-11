@@ -8,6 +8,15 @@ import {
 import {motion} from "framer-motion";
 import { useRouter } from "next/navigation";
 
+export const metadata = {
+  title: "Cookie Policy – GPN News | How We Use Cookies",
+  description: "Learn how GPN News uses cookies to improve your browsing experience, personalize content, and deliver relevant ads across our website and app.",
+  alternates: {
+    canonical: "https://www.greatpostnews.com/cookie-policy",
+  },
+  robots: "noindex, follow",
+};
+
 const cookieTypes = [
   {
     name: "Strictly Necessary",

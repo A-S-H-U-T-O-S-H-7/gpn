@@ -12,6 +12,14 @@ import { toast } from "react-hot-toast";
 import { submitAdvertiseInquiry } from "@/lib/services/advertiseService";
 import { getContactInfo } from "@/lib/services/settingsService";
 
+export const metadata = {
+  title: "Advertise on GPN News – Reach India's News Audience",
+  description: "Promote your brand on GPN News, India's first online news channel. Reach engaged readers across live TV, breaking news, politics, and India coverage.",
+  alternates: {
+    canonical: "https://www.greatpostnews.com/advertise",
+  },
+};
+
 export default function AdvertisePage() {
   const router = useRouter();
   const [contactInfo, setContactInfo] = useState(null);
