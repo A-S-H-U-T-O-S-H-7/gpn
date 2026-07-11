@@ -1,3 +1,4 @@
+import CookiePolicyPage from '@/components/Cookie-policy';
 import React from 'react'
 
 export const metadata = {
