@@ -1,15 +1,32 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Search, Sun, Moon, LogOut, Bell, UserCircle, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Menu, X, Search, Sun, Moon, LogOut, Bell, BellRing, UserCircle, ChevronDown,
+  House, Tv, Newspaper, CirclePlay, Smartphone, BookOpen, Info, LayoutGrid, ChevronRight,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import useAuthStore from "@/lib/stores/useAuthStore";
 import { getSubscriptionStatus } from "@/lib/services/subscriptionService";
 import { getActiveCategories } from "@/lib/services/categoryService";
 import SubscribeModal from "../subsription/SubscribeModal";
 import useThemeStore from "@/lib/stores/useThemeStore";
+
+const navLinks = [
+  { name: "Home", href: "/", icon: House },
+  { name: "Live TV", href: "/live-tv", icon: Tv, isLive: true },
+  { name: "News", href: "/latestNews", icon: Newspaper },
+  { name: "Videos", href: "/latestVideos", icon: CirclePlay },
+  { name: "Shorts", href: "/visual-stories", icon: Smartphone },
+  { name: "Blogs", href: "/blogs", icon: BookOpen },
+  { name: "About Us", href: "/aboutus", icon: Info },
+];
+
+// Shared button look for the round icon buttons (search, theme, menu)
+const iconButton =
+  "inline-flex items-center justify-center w-9 h-9 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,6 +36,7 @@ export default function Navbar() {
   const [isMobileCategoriesOpen, setIsMobileCategoriesOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -27,6 +45,7 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { isDarkMode, toggleTheme } = useThemeStore();
   const router = useRouter();
+  const pathname = usePathname();
   const dropdownTimeout = useRef(null);
   const profileTimeout = useRef(null);
   const categoryRef = useRef(null);
@@ -36,6 +55,21 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Soft shadow once the page is scrolled
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close menus when the route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsCategoriesOpen(false);
+    setIsMobileSearchOpen(false);
+  }, [pathname]);
 
   // Fetch categories from Firebase
   useEffect(() => {
@@ -140,16 +174,13 @@ export default function Navbar() {
     }
   };
 
-  const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Live TV", href: "/live-tv", hasLiveBadge: true },
-    { name: "Blogs", href: "/blogs" },
-    { name: "About Us", href: "/aboutus" },
-  ];
+  const isActive = (href) => (href === "/" ? pathname === "/" : pathname?.startsWith(href));
+  const isCategoryActive = pathname?.startsWith("/category/");
 
   const handleLogout = async () => {
     await logout();
     setIsProfileOpen(false);
+    setIsMenuOpen(false);
     router.push("/");
   };
 
@@ -166,191 +197,221 @@ export default function Navbar() {
     setIsSubscribeModalOpen(false);
   };
 
-  const renderThemeToggle = () => {
-    if (!mounted) {
-      return (
-        <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-          <div className="w-5 h-5 bg-gray-300 dark:bg-gray-600 rounded-full" />
-        </button>
-      );
-    }
-    return (
-      <button
-        onClick={toggleTheme}
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+  const userInitial = (user?.name?.charAt(0) || user?.email?.charAt(0) || "U").toUpperCase();
+
+  const renderThemeToggle = () => (
+    <button
+      onClick={mounted ? toggleTheme : undefined}
+      className={iconButton}
+      aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {!mounted ? (
+        <span className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600" />
+      ) : isDarkMode ? (
+        <Sun className="w-[18px] h-[18px]" />
+      ) : (
+        <Moon className="w-[18px] h-[18px]" />
+      )}
+    </button>
+  );
+
+  const renderSubscribeButton = (extra = "") =>
+    isAuthenticated && isSubscribed ? (
+      <span
+        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30 ${extra}`}
       >
-        {isDarkMode ? (
-          <Sun className="w-5 h-5 text-gray-300" />
-        ) : (
-          <Moon className="w-5 h-5 text-gray-700" />
-        )}
+        <BellRing className="w-4 h-4" />
+        Subscribed
+      </span>
+    ) : (
+      <button
+        onClick={() => {
+          handleSubscribeClick();
+          setIsMenuOpen(false);
+        }}
+        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red shadow-sm shadow-red-500/30 hover:shadow-md hover:shadow-red-500/40 hover:brightness-105 active:scale-[0.98] transition-all ${extra}`}
+      >
+        <Bell className="w-4 h-4" />
+        Subscribe
       </button>
     );
-  };
-
-  // Split categories into 3 columns for mega menu
-  const categoryColumns = [[], [], []];
-  categories.forEach((category, index) => {
-    categoryColumns[index % 3].push(category);
-  });
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800">
+      <nav
+        className={`sticky top-0 z-50 transition-shadow duration-300 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-slate-900/80 border-b ${
+          scrolled
+            ? "shadow-[0_4px_20px_-8px_rgba(0,0,0,0.15)] border-gray-200/80 dark:border-white/10"
+            : "border-gray-100 dark:border-white/5"
+        }`}
+      >
+        {/* Brand accent line */}
+        <div className="h-[3px] bg-gradient-to-r from-red-700 via-red to-orange-500" />
+
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* ─── Main row ─────────────────────────────────────────── */}
+          <div className="flex items-center h-16 gap-3">
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0 flex items-center" aria-label="Great Post News - Home">
+              <Image src="/logo.webp" alt="GPN - Great Post News" width={112} height={112} className="h-14 w-14 object-contain" priority />
+            </Link>
 
-          {/* ─── Main nav row ─────────────────────────────────────────── */}
-          <div className="flex items-center h-16 gap-2">
+            <div className="hidden lg:block w-px h-7 bg-gray-200 dark:bg-white/10 mx-1" />
 
-            {/* LEFT: Logo */}
-            <div className="flex-shrink-0">
-              <a href="/" className="flex items-center">
-                <Image
-                  src="/logo.webp"
-                  alt="GPN - Great Post News"
-                  width={100}
-                  height={50}
-                  className="h-16 w-23"
-                  priority
-                />
-              </a>
-            </div>
+            {/* Desktop links */}
+            <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 whitespace-nowrap">
+              {navLinks.map((link) => {
+                const active = isActive(link.href);
+                if (link.isLive) {
+                  return (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] xl:text-sm font-semibold transition-colors ${
+                        active
+                          ? "bg-red text-white"
+                          : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20"
+                      }`}
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${active ? "bg-white" : "bg-red"}`} />
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? "bg-white" : "bg-red"}`} />
+                      </span>
+                      {link.name}
+                    </Link>
+                  );
+                }
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`px-3 py-1.5 rounded-full text-[13px] xl:text-sm font-semibold transition-colors ${
+                      active
+                        ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
+                        : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
 
-            {/* LEFT: Desktop nav links */}
-            <div className="hidden md:flex items-center space-x-6 ml-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="relative flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-red dark:hover:text-red transition-colors font-medium"
-                >
-                  {link.name}
-                  {link.hasLiveBadge && (
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red" />
-                    </span>
-                  )}
-                </a>
-              ))}
-
-              {/* Categories Dropdown - Mega Menu */}
+              {/* Categories mega menu */}
               <div
                 ref={categoryRef}
                 className="relative"
                 onMouseEnter={handleCategoryMouseEnter}
                 onMouseLeave={handleCategoryMouseLeave}
               >
-                <button className="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-red dark:hover:text-red transition-colors font-medium">
+                <button
+                  onClick={() => setIsCategoriesOpen((v) => !v)}
+                  aria-expanded={isCategoriesOpen}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] xl:text-sm font-semibold transition-colors ${
+                    isCategoriesOpen || isCategoryActive
+                      ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
+                  }`}
+                >
                   Categories
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isCategoriesOpen ? "rotate-180" : ""}`} />
                 </button>
 
-                {/* Mega Menu Dropdown */}
                 {isCategoriesOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-[600px] rounded-xl shadow-xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-slide-down">
-                    <div className="p-6">
-                      {loadingCategories ? (
-                        <div className="text-center py-8 text-gray-500">Loading categories...</div>
-                      ) : categories.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-6">
-                          {categoryColumns.map((column, colIndex) => (
-                            <div key={colIndex} className="space-y-2">
-                              {column.map((category) => (
-                                <Link
-                                  key={category.id}
-                                  href={`/category/${category.slug}`}
-                                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors group"
-                                  onClick={() => setIsCategoriesOpen(false)}
-                                >
-                                  <span className="text-xl">{category.iconEmoji || "📰"}</span>
-                                  <span className="font-medium">{category.name}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">No categories found</div>
-                      )}
+                  // pt-3 instead of a margin keeps the hover area continuous
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 z-50">
+                    <div className="w-[620px] rounded-2xl bg-white dark:bg-slate-800 shadow-2xl shadow-black/10 ring-1 ring-black/5 dark:ring-white/10 overflow-hidden animate-slide-down">
+                      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
+                        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          <LayoutGrid className="w-3.5 h-3.5 text-red" />
+                          Browse categories
+                        </span>
+                        <span className="text-xs text-gray-400">{categories.length} topics</span>
+                      </div>
+                      <div className="p-3">
+                        {loadingCategories ? (
+                          <div className="grid grid-cols-3 gap-2">
+                            {[...Array(9)].map((_, i) => (
+                              <div key={i} className="h-10 rounded-lg bg-gray-100 dark:bg-white/5 animate-pulse" />
+                            ))}
+                          </div>
+                        ) : categories.length > 0 ? (
+                          <div className="grid grid-cols-3 gap-1">
+                            {categories.map((category) => (
+                              <Link
+                                key={category.id}
+                                href={`/category/${category.slug}`}
+                                onClick={() => setIsCategoriesOpen(false)}
+                                className={`group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                                  pathname === `/category/${category.slug}`
+                                    ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-red-600 dark:hover:text-red-400"
+                                }`}
+                              >
+                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 text-base group-hover:bg-red-50 dark:group-hover:bg-red-500/10 transition-colors">
+                                  {category.iconEmoji || "📰"}
+                                </span>
+                                <span className="truncate">{category.name}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-sm text-gray-500">No categories found</div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* CENTER: Desktop Search Bar */}
-            <div className="hidden lg:flex w-full max-w-sm xl:max-w-md mx-6">
-              <form onSubmit={handleSearch} className="relative w-full">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search news, videos..."
-                  className="w-full px-4 py-2 pl-10 pr-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-red focus:ring-1 focus:ring-red transition-colors"
-                />
-                <button type="submit" className="absolute left-3 top-2.5">
-                  <Search className="w-4 h-4 text-gray-400" />
-                </button>
-              </form>
-            </div>
-
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Right-side icon strip */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Desktop search */}
+            <form onSubmit={handleSearch} className="hidden xl:block relative w-[220px] 2xl:w-[280px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search news, videos..."
+                aria-label="Search"
+                className="w-full h-9 pl-10 pr-4 text-sm rounded-full bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-red/40 focus:ring-4 focus:ring-red/10 focus:outline-none transition-all"
+              />
+            </form>
 
-              {/* Mobile search toggle */}
+            {/* Right side */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Search toggle (below xl) */}
               <button
                 data-mobile-search
                 onClick={() => {
                   setIsMobileSearchOpen((prev) => !prev);
                   setIsMenuOpen(false);
                 }}
-                className="lg:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className={`xl:hidden ${iconButton}`}
                 aria-label="Toggle search"
               >
-                {isMobileSearchOpen
-                  ? <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                  : <Search className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                }
+                {isMobileSearchOpen ? <X className="w-[18px] h-[18px]" /> : <Search className="w-[18px] h-[18px]" />}
               </button>
 
-              {/* Theme toggle */}
               {renderThemeToggle()}
 
-              {/* Subscribe button */}
-              {isAuthenticated && isSubscribed ? (
-                <button
-                  disabled
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium text-sm cursor-default"
-                >
-                  <Bell className="w-4 h-4" />
-                  Subscribed
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubscribeClick}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
-                >
-                  <Bell className="w-4 h-4" />
-                  Subscribe
-                </button>
-              )}
+              <div className="hidden sm:block">{renderSubscribeButton()}</div>
 
-              {/* Login button for non-authenticated users */}
+              {/* Sign up (logged out) */}
               {!isAuthenticated && (
                 <Link
                   href="/signup"
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-white/15 hover:bg-gray-50 dark:hover:bg-white/5 hover:ring-gray-300 transition-all"
                 >
-                  <UserCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sign Up</span>
+                  <UserCircle className="w-4 h-4" />
+                  Sign Up
                 </Link>
               )}
 
-              {/* User account dropdown - FIXED GAP ISSUE */}
+              {/* Account (logged in) */}
               {isAuthenticated && (
                 <div
                   ref={profileRef}
@@ -360,78 +421,82 @@ export default function Navbar() {
                 >
                   <button
                     type="button"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
+                    onClick={() => setIsProfileOpen((v) => !v)}
+                    aria-expanded={isProfileOpen}
+                    className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full ring-1 ring-gray-200 dark:ring-white/15 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
-                    <div className="w-7 h-7 bg-gradient-to-r from-red-600 to-red-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
-                        {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="w-7 h-7 rounded-full bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center text-white text-xs font-bold">
+                      {userInitial}
+                    </span>
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 max-w-[90px] truncate">
                       {user?.name?.split(" ")[0] || "Account"}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`} />
                   </button>
 
                   {isProfileOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-52 rounded-xl shadow-xl border z-50 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 overflow-hidden animate-slide-down">
-                      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                          {user?.name || "User"}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
-                          {user?.email}
-                        </p>
+                    <div className="absolute right-0 top-full pt-2 z-50">
+                      <div className="w-60 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl shadow-black/10 ring-1 ring-black/5 dark:ring-white/10 overflow-hidden animate-slide-down">
+                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-white/10">
+                          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            {userInitial}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{user?.name || "User"}</p>
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                          </div>
+                        </div>
+                        <div className="p-1.5">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Logout
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                      </button>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Mobile hamburger */}
+              {/* Hamburger (below lg) */}
               <button
                 onClick={() => {
                   setIsMenuOpen((prev) => !prev);
                   setIsMobileSearchOpen(false);
                   setMobileSearchQuery("");
                 }}
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className={`lg:hidden ${iconButton}`}
                 aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
               >
-                {isMenuOpen
-                  ? <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                  : <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                }
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile Search Bar */}
+          {/* Search bar (below xl) */}
           {isMobileSearchOpen && (
-            <div data-mobile-search className="lg:hidden pb-3 pt-1 animate-slide-down">
+            <div data-mobile-search className="xl:hidden pb-3 animate-slide-down">
               <form onSubmit={handleMobileSearch} className="relative flex items-center">
-                <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-4 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input
                   ref={mobileSearchInputRef}
                   type="text"
                   value={mobileSearchQuery}
                   onChange={(e) => setMobileSearchQuery(e.target.value)}
                   placeholder="Search news, videos..."
-                  className="w-full py-2.5 pl-9 pr-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:border-red focus:ring-1 focus:ring-red transition-colors"
+                  aria-label="Search"
+                  className="w-full h-11 pl-11 pr-20 rounded-full bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-gray-100 text-sm placeholder:text-gray-400 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-red/40 focus:ring-4 focus:ring-red/10 focus:outline-none transition-all"
                 />
                 {mobileSearchQuery.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setMobileSearchQuery("")}
-                    className="absolute right-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    className="absolute right-12 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                     aria-label="Clear"
                   >
                     <X className="w-4 h-4" />
@@ -440,118 +505,133 @@ export default function Navbar() {
                 <button
                   type="submit"
                   disabled={mobileSearchQuery.trim().length < 2}
-                  className="absolute right-2 p-1.5 rounded-md bg-red text-white disabled:opacity-40 transition-opacity"
+                  className="absolute right-1.5 w-8 h-8 inline-flex items-center justify-center rounded-full bg-red text-white disabled:opacity-40 transition-opacity"
                   aria-label="Search"
                 >
-                  <Search className="w-3.5 h-3.5" />
+                  <Search className="w-4 h-4" />
                 </button>
               </form>
             </div>
           )}
+        </div>
 
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex flex-col space-y-1">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-red hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors py-2.5 px-3 rounded-lg"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {link.name}
-                    {link.hasLiveBadge && (
-                      <span className="text-xs text-red font-semibold tracking-wide">LIVE</span>
-                    )}
-                  </a>
-                ))}
-
-                {/* Mobile Categories Section - Expandable/Collapsible with 2 columns */}
-                <div className="pt-3">
-                  <button
-                    onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
-                    className="flex items-center justify-between w-full px-3 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">📂</span>
-                      <span className="font-medium">Categories</span>
-                      <span className="text-xs text-gray-400">({categories.length})</span>
-                    </div>
-                    {isMobileCategoriesOpen ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-                  
-                  {isMobileCategoriesOpen && (
-                    <div className="mt-2 px-2 animate-slide-down">
-                      {loadingCategories ? (
-                        <div className="text-center py-4 text-sm text-gray-500">Loading categories...</div>
-                      ) : categories.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          {categories.map((category) => (
-                            <Link
-                              key={category.id}
-                              href={`/category/${category.slug}`}
-                              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red rounded-lg transition-colors"
-                              onClick={() => setIsMenuOpen(false)}
-                            >
-                              <span className="text-base flex-shrink-0">{category.iconEmoji || "📰"}</span>
-                              <span className="truncate">{category.name}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-sm text-gray-500">No categories found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Auth / Subscribe row */}
-                <div className="flex gap-3 pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
-                  {isAuthenticated && isSubscribed ? (
-                    <button
-                      disabled
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium text-sm cursor-default flex items-center justify-center gap-2"
-                    >
-                      <Bell className="w-4 h-4" />
-                      Subscribed
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { handleSubscribeClick(); setIsMenuOpen(false); }}
-                      className="flex-1 px-4 py-2 bg-red text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2"
-                    >
-                      <Bell className="w-4 h-4" />
-                      Subscribe
-                    </button>
-                  )}
-                  {isAuthenticated ? (
-                    <button
-                      onClick={handleLogout}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  ) : (
+        {/* ─── Mobile menu ─────────────────────────────────────────── */}
+        {isMenuOpen && (
+          <div className="lg:hidden border-t border-gray-100 dark:border-white/10 animate-slide-down">
+            <div className="max-h-[calc(100vh-4.25rem)] overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+              {/* Links */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                {navLinks.map((link) => {
+                  const Icon = link.icon;
+                  const active = isActive(link.href);
+                  return (
                     <Link
-                      href="/signup"
-                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg font-medium text-sm text-center flex items-center justify-center gap-2"
+                      key={link.name}
+                      href={link.href}
                       onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-semibold transition-colors ${
+                        active
+                          ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                          : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5"
+                      }`}
                     >
-                      <UserCircle className="w-4 h-4" />
-                      Sign Up
+                      <span
+                        className={`flex items-center justify-center w-9 h-9 rounded-lg ${
+                          active ? "bg-red text-white" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300"
+                        }`}
+                      >
+                        <Icon className="w-[18px] h-[18px]" />
+                      </span>
+                      <span className="flex-1">{link.name}</span>
+                      {link.isLive && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red text-white text-[10px] font-bold tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                          LIVE
+                        </span>
+                      )}
                     </Link>
-                  )}
+                  );
+                })}
+              </div>
+
+              {/* Categories */}
+              <div className="rounded-2xl ring-1 ring-gray-100 dark:ring-white/10 overflow-hidden">
+                <button
+                  onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
+                  aria-expanded={isMobileCategoriesOpen}
+                  className="flex items-center justify-between w-full px-4 py-3 text-gray-800 dark:text-gray-100 bg-gray-50/80 dark:bg-white/5"
+                >
+                  <span className="flex items-center gap-2 font-semibold text-[15px]">
+                    <LayoutGrid className="w-4 h-4 text-red" />
+                    Categories
+                    <span className="text-xs font-medium text-gray-400">({categories.length})</span>
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isMobileCategoriesOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isMobileCategoriesOpen && (
+                  <div className="p-2 animate-slide-down">
+                    {loadingCategories ? (
+                      <div className="text-center py-4 text-sm text-gray-500">Loading categories...</div>
+                    ) : categories.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1">
+                        {categories.map((category) => (
+                          <Link
+                            key={category.id}
+                            href={`/category/${category.slug}`}
+                            onClick={() => setIsMenuOpen(false)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 transition-colors"
+                          >
+                            <span className="text-base flex-shrink-0">{category.iconEmoji || "📰"}</span>
+                            <span className="truncate">{category.name}</span>
+                            <ChevronRight className="w-3.5 h-3.5 ml-auto text-gray-300 flex-shrink-0" />
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-sm text-gray-500">No categories found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Account */}
+              {isAuthenticated && (
+                <div className="flex items-center gap-3 px-1">
+                  <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center text-white text-sm font-bold">
+                    {userInitial}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{user?.name || "User"}</p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                  </div>
                 </div>
+              )}
+
+              <div className="flex gap-2 pb-1">
+                {renderSubscribeButton("flex-1 py-2.5")}
+                {isAuthenticated ? (
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold text-red-600 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                ) : (
+                  <Link
+                    href="/signup"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-white/15 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <UserCircle className="w-4 h-4" />
+                    Sign Up
+                  </Link>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </nav>
 
       {/* Subscribe Modal */}
@@ -564,7 +644,7 @@ export default function Navbar() {
 
       <style jsx>{`
         @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-8px); }
+          from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .animate-slide-down {

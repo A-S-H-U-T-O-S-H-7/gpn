@@ -1,6 +1,9 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "./ClientLayout";
+import Script from "next/script";
+
+const GA_MEASUREMENT_ID = "G-MY7QV0281F";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +38,11 @@ export const metadata = {
     description: "Watch live TV, breaking news & political debates on GPN.",
   },
   verification: {
-    google: "qWSDEu_EFRORjEmGtEDprGbN_XGTyzkF-iC0AqrIxhg", // Replace with your actual code
+    // Google Search Console (both verification codes kept)
+    google: [
+      "qWSDEu_EFRORjEmGtEDprGbN_XGTyzkF-iC0AqrIxhg",
+      "P9voAhPDghS781E1OFYTTHEqPgWkkt_DfLVBxztGZ2c",
+    ],
   },
 };
 
@@ -48,14 +55,27 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Google Search Console Verification */}
-        <meta name="google-site-verification" content="qWSDEu_EFRORjEmGtEDprGbN_XGTyzkF-iC0AqrIxhg" />
-        
+        {/* Google Search Console verification tags come from `metadata.verification` above */}
+
         {/* Canonical URL */}
         <link rel="canonical" href="https://www.greatpostnews.com/" />
       </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
+
+        {/* Google Analytics 4 */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );
