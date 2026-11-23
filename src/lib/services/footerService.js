@@ -3,8 +3,10 @@ import { getActiveCategories } from './categoryService';
 
 export const getFooterData = async () => {
   try {
-    const settingsResult = await getPublicSettings();
-    const categoriesResult = await getActiveCategories();
+    const [settingsResult, categoriesResult] = await Promise.all([
+      getPublicSettings(),
+      getActiveCategories(),
+    ]);
     
     return {
       success: true,

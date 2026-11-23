@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, getCountFromServer } from 'firebase/firestore';
 
 // Helper function to get time ago
 function getTimeAgo(date) {
@@ -37,17 +37,31 @@ function formatViews(views) {
 }
 
 // Get trending items (news + videos) - ORDERED BY LATEST FIRST (updatedAt/publishedAt)
+// Total trending items (news + standard videos) using server-side counts
+const countTrendingItems = async () => {
+  const [news, videos, shorts] = await Promise.all([
+    getCountFromServer(query(collection(db, 'news'), where('status', '==', 'published'), where('isTrending', '==', true))),
+    getCountFromServer(query(collection(db, 'videos'), where('status', '==', 'published'), where('isTrending', '==', true))),
+    getCountFromServer(query(collection(db, 'videos'), where('status', '==', 'published'), where('isTrending', '==', true), where('videoType', 'in', ['short', 'reel']))),
+  ]);
+  return news.data().count + Math.max(0, videos.data().count - shorts.data().count);
+};
+
 export const getTrendingItems = async (page = 1, itemsPerPage = 8) => {
   try {
+    // Only fetch as many items as this page needs (+1 to know if more exist).
+    // The newest N of the merged list are always within the newest N of each source.
+    const needed = page * itemsPerPage + 1;
+
     // Fetch trending news - order by updatedAt DESC (latest first)
     const newsQuery = query(
       collection(db, 'news'),
       where('status', '==', 'published'),
       where('isTrending', '==', true),
       orderBy('updatedAt', 'desc'),
-      limit(50) // Get more to allow combining
+      limit(needed)
     );
-    const newsSnapshot = await getDocs(newsQuery);
+    const newsPromise = getDocs(newsQuery);
     
     // Fetch trending videos - order by updatedAt DESC (latest first)
     const videosQuery = query(
@@ -55,9 +69,16 @@ export const getTrendingItems = async (page = 1, itemsPerPage = 8) => {
       where('status', '==', 'published'),
       where('isTrending', '==', true),
       orderBy('updatedAt', 'desc'),
-      limit(50)
+      limit(needed * 2) // extra room: shorts/reels are filtered out below
     );
-    const videosSnapshot = await getDocs(videosQuery);
+    const [newsSnapshot, videosSnapshot, total] = await Promise.all([
+      newsPromise,
+      getDocs(videosQuery),
+      countTrendingItems().catch((err) => {
+        console.error("Error counting trending items:", err);
+        return null;
+      }),
+    ]);
     
     // Combine items
     let items = [];
@@ -117,13 +138,14 @@ export const getTrendingItems = async (page = 1, itemsPerPage = 8) => {
     // Pagination
     const startIndex = (page - 1) * itemsPerPage;
     const paginatedItems = items.slice(startIndex, startIndex + itemsPerPage);
-    const hasMore = startIndex + itemsPerPage < items.length;
+    const totalCount = total ?? items.length;
+    const hasMore = startIndex + itemsPerPage < Math.max(items.length, totalCount);
     
     return { 
       success: true, 
       items: paginatedItems, 
       hasMore, 
-      total: items.length 
+      total: totalCount
     };
   } catch (error) {
     console.error('Error getting trending items:', error);

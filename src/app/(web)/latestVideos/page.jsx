@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Play, Eye, Calendar, TrendingUp, Heart } from "lucide-react";
 import { getLatestVideos, getMoreVideos } from "@/lib/services/videoService";
@@ -25,13 +25,13 @@ function SkeletonCard() {
   );
 }
 
-function VideoCard({ video }) {
+function VideoCard({ video, playlist }) {
   return (
-    <Link href={`/video/${video.slug}`} className="group block">
+    <Link href={`/video/${video.slug}`} video={video} playlist={playlist} className="group block">
       <div className="relative rounded-xl overflow-hidden bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-600/70 shadow-sm hover:shadow-xl dark:hover:shadow-slate-900/60 hover:-translate-y-1 transition-all duration-300">
         <div className="relative aspect-video overflow-hidden bg-gray-800">
           {video.thumbnail ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={video.thumbnail}
               alt={video.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -130,7 +130,6 @@ export default function VideosPage() {
         setVideos(prev => [...prev, ...result.videos]);
         setLastDoc(result.lastVisible);
         setHasMore(result.hasMore);
-        setTotalVideos(prev => prev + result.videos.length);
       } else {
         setHasMore(false);
       }
@@ -211,7 +210,7 @@ export default function VideosPage() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
               {videos.map((video) => (
-                <VideoCard key={video.id} video={video} />
+                <VideoCard key={video.id} video={video} playlist={videos} />
               ))}
             </div>
 

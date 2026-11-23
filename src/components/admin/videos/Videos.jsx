@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Search } from "lucide-react";
+import { ArrowLeft, Plus, Search, Download } from "lucide-react";
 import { toast } from "react-hot-toast";
 import useThemeStore from "@/lib/stores/useThemeStore";
 import useAdminAuthStore from "@/lib/stores/useAdminAuthStore";
@@ -128,13 +128,26 @@ export default function AdminVideosPage() {
             <p className={` text-sm ${isDarkMode ? 'text-gray-50' : 'text-gray-700'} mt-1`}>Manage your video content</p>
           </div>
         </div>
-        <button
-          onClick={handleCreateVideo}
-          className="flex items-center gap-2 px-4 py-2 bg-red hover:bg-red-600 text-white rounded-lg font-medium transition-all duration-200 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          Add Video
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => router.push("/admin/videos/import")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium border-2 transition-all duration-200 cursor-pointer ${
+              isDarkMode
+                ? "border-red-500/60 text-red-400 hover:bg-red-950/40"
+                : "border-red-300 text-red-600 hover:bg-red-50"
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            Import from YouTube
+          </button>
+          <button
+            onClick={handleCreateVideo}
+            className="flex items-center gap-2 px-4 py-2 bg-red hover:bg-red-600 text-white rounded-lg font-medium transition-all duration-200 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Add Video
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { ArrowLeft, Calendar, Eye, Play, LayoutGrid, Newspaper, Video } from "lucide-react";
 import { getCategoryBySlug } from "@/lib/services/categoryService";
 import { getNewsByCategory } from "@/lib/services/newsService";
@@ -285,12 +285,13 @@ export default function CategoryPage() {
                 <Link
                   key={`${item.id}-${isVideo ? "video" : "news"}`}
                   href={linkHref}
+                  video={item}
                   className="group bg-white dark:bg-gray-800/80 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 flex flex-col"
                 >
                   {/* Thumbnail */}
                   <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                     {thumbnail ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={thumbnail}
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

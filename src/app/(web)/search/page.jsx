@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Search, Calendar, Eye, Clock, Play, FileText, Video, BookOpen, ArrowLeft } from "lucide-react";
 import { searchAllContent } from "@/lib/services/searchService";
 
@@ -76,12 +76,12 @@ function SearchContent() {
     const thumbnail = item.image || item.thumbnail;
     
     return (
-      <Link key={`${item.type}-${item.id}`} href={href} className="group">
+      <Link key={`${item.type}-${item.id}`} href={href} video={item} className="group">
         <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col sm:flex-row gap-4 p-4">
           {/* Thumbnail */}
           <div className="relative w-full sm:w-48 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800">
             {thumbnail ? (
-              <img src={thumbnail} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img loading="lazy" decoding="async" src={thumbnail} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-3xl">
                 {item.type === "video" ? "🎬" : item.type === "blog" ? "📝" : "📰"}

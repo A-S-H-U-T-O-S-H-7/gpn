@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase/config';
-import { collection, query, where, getDocs, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
 
 // Get both hero items (one news, one video) for homepage carousel
@@ -9,11 +9,25 @@ export const getHeroItems = async () => {
     const newsQuery = query(
       collection(db, 'news'),
       where('status', '==', 'published'),
-      where('isHero', '==', true)
+      where('isHero', '==', true),
+      limit(1)
     );
-    const newsSnapshot = await getDocs(newsQuery);
+    // Get hero video
+    const videosQuery = query(
+      collection(db, 'videos'),
+      where('status', '==', 'published'),
+      where('isHero', '==', true),
+      limit(1)
+    );
+
+    // Run both queries at the same time
+    const [newsSnapshot, videosSnapshot] = await Promise.all([
+      getDocs(newsQuery),
+      getDocs(videosQuery),
+    ]);
+
     let heroNews = null;
-    
+
     if (!newsSnapshot.empty) {
       const docSnap = newsSnapshot.docs[0];
       const data = docSnap.data();
@@ -30,14 +44,7 @@ export const getHeroItems = async () => {
         createdAt: data.createdAt?.toDate?.()
       };
     }
-    
-    // Get hero video
-    const videosQuery = query(
-      collection(db, 'videos'),
-      where('status', '==', 'published'),
-      where('isHero', '==', true)
-    );
-    const videosSnapshot = await getDocs(videosQuery);
+
     let heroVideo = null;
     
     if (!videosSnapshot.empty) {

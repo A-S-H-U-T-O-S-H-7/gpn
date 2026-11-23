@@ -84,7 +84,25 @@ export const getCategories = async () => {
 };
 
 // Get active categories (for homepage)
+// Navbar, the homepage category strip and the footer all ask for this at once.
+// Share one in-flight request (and reuse it for a minute) instead of querying 3 times.
+let activeCategoriesCache = null;
+const ACTIVE_CATEGORIES_TTL = 60 * 1000;
+
 export const getActiveCategories = async () => {
+  const now = Date.now();
+  if (activeCategoriesCache && now - activeCategoriesCache.time < ACTIVE_CATEGORIES_TTL) {
+    return activeCategoriesCache.promise;
+  }
+  const promise = fetchActiveCategories().then((result) => {
+    if (!result.success) activeCategoriesCache = null; // don't keep failures
+    return result;
+  });
+  activeCategoriesCache = { time: now, promise };
+  return promise;
+};
+
+const fetchActiveCategories = async () => {
   try {
     const categoriesRef = collection(db, CATEGORIES_COLLECTION);
     const q = query(
@@ -185,6 +203,7 @@ export const getCategoryById = async (categoryId) => {
 
 // Create category
 export const createCategory = async (categoryData, adminData) => {
+  activeCategoriesCache = null; // categories changed - drop cached list
   try {
     // Check if slug already exists
     const slugQuery = query(
@@ -231,6 +250,7 @@ export const createCategory = async (categoryData, adminData) => {
 
 // Update category
 export const updateCategory = async (categoryId, categoryData, oldCategoryData, adminData) => {
+  activeCategoriesCache = null; // categories changed - drop cached list
   try {
     // Check if slug already exists (excluding current)
     const slugQuery = query(
@@ -279,6 +299,7 @@ export const updateCategory = async (categoryId, categoryData, oldCategoryData, 
 
 // Delete category
 export const deleteCategory = async (categoryId, categoryName, adminData) => {
+  activeCategoriesCache = null; // categories changed - drop cached list
   try {
     await deleteDoc(doc(db, CATEGORIES_COLLECTION, categoryId));
     

@@ -39,7 +39,7 @@ export const getEditorsPicks = async (limitCount = 3) => {
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
-    const newsSnapshot = await getDocs(newsQuery);
+    const newsPromise = getDocs(newsQuery);
     
     // Fetch from videos
     const videosQuery = query(
@@ -49,7 +49,7 @@ export const getEditorsPicks = async (limitCount = 3) => {
       orderBy('createdAt', 'desc'),
       limit(limitCount)
     );
-    const videosSnapshot = await getDocs(videosQuery);
+    const [newsSnapshot, videosSnapshot] = await Promise.all([newsPromise, getDocs(videosQuery)]);
     
     // Combine
     let items = [];
@@ -109,7 +109,7 @@ export const getMostWatched = async (limitCount = 5) => {
       orderBy('views', 'desc'),
       limit(limitCount)
     );
-    const newsSnapshot = await getDocs(newsQuery);
+    const newsPromise = getDocs(newsQuery);
     
     // Fetch from videos
     const videosQuery = query(
@@ -118,7 +118,7 @@ export const getMostWatched = async (limitCount = 5) => {
       orderBy('views', 'desc'),
       limit(limitCount)
     );
-    const videosSnapshot = await getDocs(videosQuery);
+    const [newsSnapshot, videosSnapshot] = await Promise.all([newsPromise, getDocs(videosQuery)]);
     
     // Combine
     let items = [];

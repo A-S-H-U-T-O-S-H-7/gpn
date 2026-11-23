@@ -7,7 +7,7 @@ export default function NewsThumbnail({ news }) {
   return (
     <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800">
       {news.image ? (
-        <img
+        <img loading="lazy" decoding="async"
           src={news.image}
           alt={news.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

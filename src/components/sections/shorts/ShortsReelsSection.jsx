@@ -117,13 +117,13 @@ export default function ShortsReelsSection() {
                       {/* Thumbnail */}
                       <div className="relative w-full h-full">
                         {short.thumbnail ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={short.thumbnail}
                             alt={short.title}
                             className="w-full h-full object-cover"
                           />
                         ) : short.videoId ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={`https://img.youtube.com/vi/${short.videoId}/hqdefault.jpg`}
                             alt={short.title}
                             className="w-full h-full object-cover"

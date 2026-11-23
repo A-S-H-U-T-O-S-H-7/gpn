@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Clock, Award, Play, Eye } from "lucide-react";
 import { getEditorsPicks } from "@/lib/services/homepageService";
 
@@ -100,6 +100,7 @@ export default function EditorsPicks() {
           <Link
             key={pick.id}
             href={pick.type === 'news' ? `/news/${pick.slug}` : `/video/${pick.slug}`}
+            video={pick}
             className="group flex gap-3 py-3.5 first:pt-0 last:pb-0 hover:bg-red-50/30 dark:hover:bg-red-950/10 -mx-3 px-3 rounded-xl transition-colors duration-200"
           >
             {/* Thumbnail */}
@@ -111,7 +112,7 @@ export default function EditorsPicks() {
                 {idx + 1}
               </div>
               {pick.image ? (
-                <img src={pick.image} alt={pick.title} className="w-full h-full object-cover object-center" />
+                <img loading="lazy" decoding="async" src={pick.image} alt={pick.title} className="w-full h-full object-cover object-center" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="text-gray-400 dark:text-gray-600 text-xs">📰</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Eye, TrendingUp, Play } from "lucide-react";
 import { getMostWatched } from "@/lib/services/homepageService";
 
@@ -98,6 +98,7 @@ export default function MostWatched() {
           <Link
             key={item.id}
             href={item.type === "video" ? `/video/${item.slug}` : `/news/${item.slug}`}
+            video={item}
             className="group flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-red-50/30 dark:hover:bg-red-950/10 -mx-3 px-3 rounded-xl transition-colors duration-200"
           >
             {/* Rank */}
@@ -116,7 +117,7 @@ export default function MostWatched() {
             {/* Thumbnail */}
             <div className="flex-shrink-0 w-16 h-14 md:w-20 md:h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 relative">
               {item.image ? (
-                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={item.image} alt={item.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="text-gray-400 dark:text-gray-600 text-xs">Img</span>

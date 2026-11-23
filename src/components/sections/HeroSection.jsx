@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Play, Eye, Clock, ChevronLeft, ChevronRight, TrendingUp, Flame, Radio } from "lucide-react";
 import { getHeroItems } from "@/lib/services/heroService";
 import { getFeaturedVideosForHero } from "@/lib/services/videoService";
@@ -130,12 +130,13 @@ export default function HeroSection() {
                   {/* ── Main image ── */}
                   <Link
                     href={currentItem.type === "news" ? `/news/${currentItem.slug}` : `/video/${currentItem.slug}`}
+                    video={currentItem}
                     className="block group"
                   >
                     {/* Changed height for mobile to prevent cropping */}
                     <div className="relative h-[300px] sm:h-[380px] md:h-[520px] bg-slate-900 overflow-hidden">
                       {currentItem.image ? (
-                        <img
+                        <img fetchPriority="high" decoding="async"
                           key={currentIndex}
                           src={currentItem.image}
                           alt={currentItem.title}
@@ -323,6 +324,8 @@ export default function HeroSection() {
                   <Link
                     key={video.id}
                     href={`/video/${video.slug}`}
+                    video={video}
+                    playlist={featuredVideos}
                     className="group flex gap-2 md:gap-3 p-2 md:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all duration-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                   >
                     {/* Rank number */}
@@ -343,7 +346,7 @@ export default function HeroSection() {
                     {/* Thumbnail - Fixed size to prevent cropping */}
                     <div className="relative w-[80px] md:w-[104px] h-[50px] md:h-[64px] flex-shrink-0 rounded-lg md:rounded-xl overflow-hidden bg-slate-700">
                       {video.thumbnail ? (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={video.thumbnail}
                           alt={video.title}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"

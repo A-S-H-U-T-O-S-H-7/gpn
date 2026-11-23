@@ -67,7 +67,7 @@ export default function BlogCard({ post, index }) {
 
           <div className="absolute inset-0 flex items-center justify-center">
             {post.image ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={post.image}
                 alt={post.title}
                 className="w-full h-full object-cover"

@@ -14,7 +14,9 @@ import {
   startAfter,
   serverTimestamp,
   increment,
-  writeBatch
+  writeBatch,
+  getCountFromServer,
+  Timestamp
 } from 'firebase/firestore';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
 
@@ -571,69 +573,99 @@ export const getVideos = async (page = 1, searchTerm = '', statusFilter = 'all',
 
 // ==================== FIXED: HOMEPAGE LATEST VIDEOS ====================
 
-export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
-  try {
-    const videosRef = collection(db, VIDEOS_COLLECTION);
-    // Get ALL published videos (no limit)
+// Map a Firestore doc to the shape used by the video cards
+const toStandardVideo = (docSnap) => {
+  const data = docSnap.data();
+  const date = data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date());
+  return {
+    id: docSnap.id,
+    title: data.title || '',
+    slug: data.slug || '',
+    duration: data.duration || '',
+    views: data.views || 0,
+    likes: data.likes || 0,
+    date,
+    category: data.category || '',
+    thumbnail: data.thumbnail || '',
+    videoId: data.videoId || '',
+    isTrending: data.isTrending || false,
+    videoType: data.videoType || 'standard',
+    formattedDate: getTimeAgo(date),
+    formattedViews: formatViews(data.views || 0),
+    formattedLikes: formatViews(data.likes || 0),
+  };
+};
+
+// Read published videos in pages and keep only standard ones (not shorts/reels),
+// stopping as soon as we have `count` of them (+1 to know whether more exist).
+// This replaces the old approach of downloading EVERY published video.
+const fetchStandardVideos = async (count, afterDoc = null) => {
+  const videosRef = collection(db, VIDEOS_COLLECTION);
+  const batchSize = Math.max(count * 2, 20);
+  const videos = [];
+  const snaps = [];
+  let cursor = afterDoc;
+  let exhausted = false;
+
+  while (videos.length <= count && !exhausted) {
     const constraints = [
       where('status', '==', 'published'),
-      orderBy('publishDate', 'desc')
+      orderBy('publishDate', 'desc'),
     ];
-    
-    const q = query(videosRef, ...constraints);
-    const snapshot = await getDocs(q);
-    
-    const allVideos = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const videoType = data.videoType || 'standard';
-      
-      // Only include standard videos
-      if (videoType === 'standard') {
-        allVideos.push({
-          id: doc.id,
-          title: data.title || '',
-          slug: data.slug || '',
-          duration: data.duration || '',
-          views: data.views || 0,
-          likes: data.likes || 0,
-          date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
-          category: data.category || '',
-          thumbnail: data.thumbnail || '',
-          videoId: data.videoId || '',
-          isTrending: data.isTrending || false,
-          videoType: videoType,
-        });
+    if (cursor) constraints.push(startAfter(cursor));
+    constraints.push(limit(batchSize));
+
+    const snapshot = await getDocs(query(videosRef, ...constraints));
+    snapshot.docs.forEach((docSnap) => {
+      if (videos.length > count) return;
+      if ((docSnap.data().videoType || 'standard') === 'standard') {
+        videos.push(toStandardVideo(docSnap));
+        snaps.push(docSnap);
       }
     });
-    
-    // Sort by date (newest first)
-    allVideos.sort((a, b) => b.date - a.date);
-    
-    // Get total count
-    const totalVideos = allVideos.length;
-    
-    // Paginate
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedVideos = allVideos.slice(startIndex, endIndex);
-    
-    const formattedVideos = paginatedVideos.map(video => ({
-      ...video,
-      formattedDate: getTimeAgo(video.date),
-      formattedViews: formatViews(video.views),
-      formattedLikes: formatViews(video.likes || 0),
-    }));
-    
-    // Check if there are more videos
-    const hasMore = endIndex < totalVideos;
-    
-    return { 
-      success: true, 
-      videos: formattedVideos, 
-      hasMore: hasMore,
-      totalVideos: totalVideos,
-      lastVisible: paginatedVideos.length > 0 ? paginatedVideos[paginatedVideos.length - 1] : null
+
+    exhausted = snapshot.docs.length < batchSize;
+    cursor = snapshot.docs[snapshot.docs.length - 1] || cursor;
+  }
+
+  const hasMore = videos.length > count;
+  return {
+    videos: videos.slice(0, count),
+    hasMore,
+    lastDoc: snaps[Math.min(count, snaps.length) - 1] || null,
+  };
+};
+
+// Total number of published standard videos, via cheap server-side counts
+const countStandardVideos = async () => {
+  const videosRef = collection(db, VIDEOS_COLLECTION);
+  const [all, shorts] = await Promise.all([
+    getCountFromServer(query(videosRef, where('status', '==', 'published'))),
+    getCountFromServer(query(videosRef, where('status', '==', 'published'), where('videoType', 'in', ['short', 'reel']))),
+  ]);
+  return Math.max(0, all.data().count - shorts.data().count);
+};
+
+export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
+  try {
+    const skip = (page - 1) * itemsPerPage;
+    const [result, totalVideos] = await Promise.all([
+      fetchStandardVideos(skip + itemsPerPage),
+      countStandardVideos().catch((error) => {
+        console.error('Error counting videos:', error);
+        return null;
+      }),
+    ]);
+
+    const videos = result.videos.slice(skip);
+
+    return {
+      success: true,
+      videos,
+      hasMore: result.hasMore,
+      totalVideos: totalVideos ?? result.videos.length,
+      // Firestore cursor - pass it back to getMoreVideos()
+      lastVisible: result.lastDoc,
     };
   } catch (error) {
     console.error('Error getting latest videos:', error);
@@ -641,77 +673,27 @@ export const getLatestVideos = async (page = 1, itemsPerPage = 20) => {
   }
 };
 
-// ==================== FIXED: GET MORE VIDEOS ====================
+// ==================== GET MORE VIDEOS ====================
 
 export const getMoreVideos = async (lastVideo, itemsPerPage = 12) => {
   try {
-    // Since we're paginating in memory, we need to get all videos again
-    // But we can use the last video date to filter
-    const videosRef = collection(db, VIDEOS_COLLECTION);
-    const constraints = [
-      where('status', '==', 'published'),
-      orderBy('publishDate', 'desc')
-    ];
-    
-    const q = query(videosRef, ...constraints);
-    const snapshot = await getDocs(q);
-    
-    const allVideos = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const videoType = data.videoType || 'standard';
-      
-      if (videoType === 'standard') {
-        allVideos.push({
-          id: doc.id,
-          title: data.title || '',
-          slug: data.slug || '',
-          duration: data.duration || '',
-          views: data.views || 0,
-          likes: data.likes || 0,
-          date: data.publishDate ? new Date(data.publishDate) : (data.createdAt?.toDate() || new Date()),
-          category: data.category || '',
-          thumbnail: data.thumbnail || '',
-          videoId: data.videoId || '',
-          isTrending: data.isTrending || false,
-          videoType: videoType,
-          docRef: doc // Keep reference for ordering
-        });
-      }
-    });
-    
-    // Sort by date (newest first)
-    allVideos.sort((a, b) => b.date - a.date);
-    
-    // Find the index of the last video
-    let startIndex = 0;
-    if (lastVideo) {
-      const lastVideoId = lastVideo.id || lastVideo;
-      const foundIndex = allVideos.findIndex(v => v.id === lastVideoId);
-      if (foundIndex !== -1) {
-        startIndex = foundIndex + 1;
-      }
+    // Accept either a Firestore snapshot (from getLatestVideos) or a video object / id
+    let cursor = null;
+    if (lastVideo && typeof lastVideo.data === 'function') {
+      cursor = lastVideo;
+    } else if (lastVideo) {
+      const lastId = lastVideo.id || lastVideo;
+      const snap = await getDoc(doc(db, VIDEOS_COLLECTION, lastId));
+      cursor = snap.exists() ? snap : null;
     }
-    
-    // Get next batch
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedVideos = allVideos.slice(startIndex, endIndex);
-    
-    const formattedVideos = paginatedVideos.map(video => ({
-      ...video,
-      formattedDate: getTimeAgo(video.date),
-      formattedViews: formatViews(video.views),
-      formattedLikes: formatViews(video.likes || 0),
-    }));
-    
-    // Check if there are more videos
-    const hasMore = endIndex < allVideos.length;
-    
-    return { 
-      success: true, 
-      videos: formattedVideos, 
-      hasMore: hasMore,
-      lastVisible: paginatedVideos.length > 0 ? paginatedVideos[paginatedVideos.length - 1] : null
+
+    const result = await fetchStandardVideos(itemsPerPage, cursor);
+
+    return {
+      success: true,
+      videos: result.videos,
+      hasMore: result.hasMore,
+      lastVisible: result.lastDoc,
     };
   } catch (error) {
     console.error('Error getting more videos:', error);
@@ -1069,5 +1051,140 @@ export const getTop10Video = async () => {
   } catch (error) {
     console.error("Error fetching Top 10 video:", error);
     return { success: false, video: null };
+  }
+};
+// ==================== BULK IMPORT FROM YOUTUBE ====================
+
+const chunk = (arr, size) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+// Which of these YouTube ids are already saved as videos on the site?
+export const getExistingVideoIds = async (youtubeIds) => {
+  const existing = new Set();
+  const videosRef = collection(db, VIDEOS_COLLECTION);
+  const groups = chunk([...new Set(youtubeIds)].filter(Boolean), 30);
+  // 10 queries at a time
+  for (const wave of chunk(groups, 10)) {
+    const snapshots = await Promise.all(wave.map((ids) => getDocs(query(videosRef, where('videoId', 'in', ids)))));
+    snapshots.forEach((snap) => snap.forEach((d) => existing.add(d.data().videoId)));
+  }
+  return existing;
+};
+
+const getExistingSlugs = async (slugs) => {
+  const existing = new Set();
+  const videosRef = collection(db, VIDEOS_COLLECTION);
+  const groups = chunk([...new Set(slugs)].filter(Boolean), 30);
+  for (const wave of chunk(groups, 10)) {
+    const snapshots = await Promise.all(wave.map((part) => getDocs(query(videosRef, where('slug', 'in', part)))));
+    snapshots.forEach((snap) => snap.forEach((d) => existing.add(d.data().slug)));
+  }
+  return existing;
+};
+
+// Slug from the title, max ~80 chars. The channel name ("Great Post News")
+// is dropped since it's in almost every title. Hindi-only titles lose all
+// their letters in generateSlug, so those fall back to "video-<youtube id>".
+const importSlug = (title, videoId) => {
+  const cleaned = (title || '').replace(/great\s*post\s*news|great\s*post|\bgpn\b/gi, ' ');
+  let slug = generateSlug(cleaned);
+  if (slug.length > 80) slug = slug.slice(0, 80).replace(/-[^-]*$/, '');
+  slug = slug.replace(/^-+|-+$/g, '');
+  const words = slug.split('-').filter((w) => /[a-z]/.test(w));
+  return words.length >= 2 ? slug : `video-${videoId.toLowerCase()}`;
+};
+
+/**
+ * Save many YouTube videos at once.
+ * videos:  items from /api/youtube-import (videoId, title, description, tags,
+ *          thumbnail, duration, publishDate, publishedAt, videoType, youtubeUrl)
+ * options: { category, status }
+ * Skips videos whose YouTube id already exists. Writes in Firestore batches
+ * and logs one activity entry for the whole import.
+ */
+export const importYouTubeVideos = async (videos, options, adminData, onProgress) => {
+  try {
+    const { category = '', status = 'published' } = options || {};
+
+    const existingIds = await getExistingVideoIds(videos.map((v) => v.videoId));
+    const toImport = videos.filter((v) => !existingIds.has(v.videoId));
+
+    // Make slugs unique against the database and within this import
+    const baseSlugs = toImport.map((v) => importSlug(v.title, v.videoId));
+    const takenSlugs = await getExistingSlugs(baseSlugs);
+    const used = new Set();
+    const slugs = baseSlugs.map((slug, i) => {
+      let finalSlug = slug;
+      if (takenSlugs.has(finalSlug) || used.has(finalSlug)) {
+        finalSlug = `${slug}-${toImport[i].videoId.toLowerCase()}`;
+      }
+      used.add(finalSlug);
+      return finalSlug;
+    });
+
+    let saved = 0;
+    const groups = chunk(toImport.map((v, i) => ({ ...v, slug: slugs[i] })), 400);
+
+    for (const group of groups) {
+      const batch = writeBatch(db);
+      group.forEach((v) => {
+        const ytDate = v.publishedAt ? Timestamp.fromDate(new Date(v.publishedAt)) : serverTimestamp();
+        const description = v.description || '';
+        batch.set(doc(collection(db, VIDEOS_COLLECTION)), {
+          title: v.title,
+          slug: v.slug,
+          youtubeUrl: v.youtubeUrl || `https://www.youtube.com/watch?v=${v.videoId}`,
+          videoId: v.videoId,
+          thumbnail: v.thumbnail || getYouTubeThumbnail(v.videoId),
+          duration: v.duration || '',
+          category,
+          tags: v.tags || [],
+          description,
+          metatitle: v.title,
+          metadesc: description.replace(/\s+/g, ' ').trim().substring(0, 160),
+          metakeywords: (v.tags || []).join(', '),
+          status,
+          videoType: v.videoType || 'standard',
+          isFeatured: false,
+          isEditorPick: false,
+          isTrending: false,
+          isHero: false,
+          isTop10: false,
+          // Keep YouTube's original upload date so old videos sort as old
+          publishDate: v.publishDate || new Date().toISOString().split('T')[0],
+          views: 0,
+          likes: 0,
+          createdAt: ytDate,
+          updatedAt: serverTimestamp(),
+          publishedAt: status === 'published' ? ytDate : null,
+          importedFrom: 'youtube',
+          importedAt: serverTimestamp(),
+        });
+      });
+      await batch.commit();
+      saved += group.length;
+      onProgress?.(saved, toImport.length);
+    }
+
+    if (saved > 0) {
+      await logActivity({
+        action: ActivityActions.CREATE,
+        entityType: ActivityEntityTypes.VIDEO,
+        entityId: 'youtube-import',
+        entityTitle: `${saved} videos imported from YouTube`,
+        details: `Imported ${saved} videos from YouTube (category: ${category || 'none'}, status: ${status})`,
+        adminId: adminData?.id,
+        adminName: adminData?.name,
+        adminRole: adminData?.role,
+      });
+    }
+
+    return { success: true, imported: saved, skipped: videos.length - toImport.length };
+  } catch (error) {
+    console.error('Error importing YouTube videos:', error);
+    return { success: false, error: error.message };
   }
 };

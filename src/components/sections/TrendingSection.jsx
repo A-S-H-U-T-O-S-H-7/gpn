@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Flame, Eye, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { getTrendingItems } from "@/lib/services/trendingService";
 
@@ -135,12 +135,13 @@ export default function TrendingSection() {
           <Link
             key={`${item.id}-${item.type}`}
             href={item.type === "news" ? `/news/${item.slug}` : `/video/${item.slug}`}
+            video={item}
             className="group flex flex-col bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 hover:border-red-200 dark:hover:border-red-900 hover:-translate-y-0.5 transition-all duration-300 shadow-sm hover:shadow-md"
           >
             {/* Image */}
             <div className="relative h-40 overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
               {item.image ? (
-                <img
+                <img loading="lazy" decoding="async"
                   src={item.image}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

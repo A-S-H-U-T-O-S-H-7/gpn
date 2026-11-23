@@ -190,7 +190,7 @@ export default function ShortsCarousel() {
         <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/50">
           {/* Thumbnail */}
           <div className="relative w-full h-full">
-            <img
+            <img decoding="async"
               src={card.thumbnail || `https://img.youtube.com/vi/${card.videoId}/hqdefault.jpg`}
               alt={card.title}
               className="w-full h-full object-cover"

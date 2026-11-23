@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Play, Clock, ChevronRight, Newspaper } from "lucide-react";
 import { getTop10Video } from "@/lib/services/videoService";
 
@@ -164,6 +164,7 @@ export default function Top10NewsBox() {
       {/* ── Watch link ── */}
       <Link
         href={`/video/${top10Video.slug}`}
+        video={top10Video}
         className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 border-b border-gray-100 dark:border-gray-800 transition-colors group"
       >
         <Play className="w-3 h-3 fill-current" />

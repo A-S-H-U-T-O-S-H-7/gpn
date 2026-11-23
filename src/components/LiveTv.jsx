@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { 
   Play, 
   Clock, 
@@ -302,11 +302,13 @@ export default function LiveTVPage() {
                   <Link
                     key={video.id}
                     href={`/video/${video.slug}`}
+                    video={video}
+                    playlist={featuredVideos}
                     className="group flex gap-3 p-2 bg-white dark:bg-gray-900 rounded-xl hover:shadow-md transition-all cursor-pointer"
                   >
                     <div className="relative w-24 h-14 flex-shrink-0 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg overflow-hidden">
                       {video.thumbnail ? (
-                        <img 
+                        <img loading="lazy" decoding="async" 
                           src={video.thumbnail} 
                           alt={video.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

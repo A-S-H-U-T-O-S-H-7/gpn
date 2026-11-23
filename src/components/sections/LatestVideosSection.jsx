@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import Link from "@/components/video/VideoLink"; // opens /video/* links in the player modal
 import { Play, Eye, Calendar, TrendingUp, Clock, Heart, ChevronDown, Video, ChevronRight } from "lucide-react";
 import { getLatestVideos, getMoreVideos } from "@/lib/services/videoService";
 
@@ -26,9 +26,9 @@ function SkeletonCard() {
 }
 
 // ── Video Card ─────────────────────────────────────────────────
-function VideoCard({ video }) {
+function VideoCard({ video, playlist }) {
   return (
-    <Link href={`/video/${video.slug}`} className="group block">
+    <Link href={`/video/${video.slug}`} video={video} playlist={playlist} className="group block">
       <div className="
         relative rounded-xl overflow-hidden
         bg-white dark:bg-slate-800/80
@@ -43,7 +43,7 @@ function VideoCard({ video }) {
 
           {/* Image */}
           {video.thumbnail ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={video.thumbnail}
               alt={video.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -191,7 +191,7 @@ export default function LatestVideosSection() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
               {videos.map((video) => (
-                <VideoCard key={video.id} video={video} />
+                <VideoCard key={video.id} video={video} playlist={videos} />
               ))}
             </div>
 
