@@ -5,6 +5,7 @@ import { Play, Eye, Calendar, ChevronLeft, ChevronRight, Flame } from "lucide-re
 import { getLatestShorts } from "@/lib/services/videoService";
 import ShortsModal from "./ShortsModal";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ShortsReelsSection() {
   const [shorts, setShorts] = useState([]);
@@ -70,10 +71,10 @@ export default function ShortsReelsSection() {
                 </p>
               </div>
             </div>
-            <button className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+            <Link href="/visual-stories" className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
               View All
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
 
           {/* Desktop Horizontal Rail */}

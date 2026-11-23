@@ -108,7 +108,12 @@ export default function ManageVideoPage() {
     if (!formData.url.trim()) newErrors.url = "URL is required";
     if (!formData.youtubeUrl.trim()) newErrors.youtubeUrl = "YouTube URL is required";
     if (!getYouTubeId(formData.youtubeUrl)) newErrors.youtubeUrl = "Invalid YouTube URL";
+    // YouTube drafts arrive without a category - it must be chosen before publishing
+    if (formData.status === "published" && !formData.category) newErrors.category = "Choose a category before publishing";
     setErrors(newErrors);
+    if (newErrors.category && Object.keys(newErrors).length === 1) {
+      toast.error(newErrors.category);
+    }
     return Object.keys(newErrors).length === 0;
   };
 

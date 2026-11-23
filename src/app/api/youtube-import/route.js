@@ -127,7 +127,10 @@ export async function POST(request) {
   }
 
   try {
-    const { source, from, to, pageToken: startToken = "", playlistId: knownPlaylist } = await request.json();
+    const body = await request.json();
+    const { from, to, since, pageToken: startToken = "", playlistId: knownPlaylist } = body;
+    // Auto-sync sends no link: use the channel configured on the server
+    const source = body.source || process.env.YOUTUBE_CHANNEL_ID;
     if (!source && !knownPlaylist) {
       return NextResponse.json({ success: false, error: "Channel or playlist link is required." }, { status: 400 });
     }
@@ -151,18 +154,21 @@ export async function POST(request) {
       );
 
       let allOlderThanFrom = (data.items?.length || 0) > 0;
+      let allOlderThanSince = Boolean(since) && (data.items?.length || 0) > 0;
       for (const item of data.items || []) {
         scanned++;
         const publishedAt = item.contentDetails?.videoPublishedAt;
         if (!publishedAt) continue; // private / deleted
         const date = toLocalDate(publishedAt);
+        if (since && publishedAt > since) allOlderThanSince = false;
+        if (since && publishedAt <= since) continue; // exact cut-off used by auto-sync
         if (!from || date >= from) allOlderThanFrom = false;
         if ((from && date < from) || (to && date > to)) continue;
         candidates.push(item.contentDetails.videoId);
       }
 
       pageToken = data.nextPageToken || "";
-      if (!pageToken || (from && allOlderThanFrom)) {
+      if (!pageToken || (from && allOlderThanFrom) || allOlderThanSince) {
         done = true;
         break;
       }

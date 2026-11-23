@@ -5,6 +5,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Play, Eye, Calendar, Flame, ChevronRight } from "lucide-react";
 import { getLatestShorts } from "@/lib/services/videoService";
 import ShortsModal from "./ShortsModal";
+import Link from "next/link";
 
 export default function ShortsCarousel() {
   const [shorts, setShorts] = useState([]);
@@ -253,9 +254,15 @@ export default function ShortsCarousel() {
               <p className="text-[10px] text-gray-500 dark:text-gray-400">Watch the story unfold</p>
             </div>
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {currentIndex + 1}/{shorts.length}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {currentIndex + 1}/{shorts.length}
+            </span>
+            <Link href="/visual-stories" className="text-xs text-red-600 font-semibold flex items-center gap-0.5">
+              View All
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         {/* Carousel - Stack Card Design */}

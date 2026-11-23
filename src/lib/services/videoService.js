@@ -16,7 +16,9 @@ import {
   increment,
   writeBatch,
   getCountFromServer,
-  Timestamp
+  Timestamp,
+  setDoc,
+  arrayUnion
 } from 'firebase/firestore';
 import { logActivity, ActivityActions, ActivityEntityTypes } from './activityLogService';
 
@@ -226,7 +228,10 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
       slug: videoData.url || generateSlug(videoData.title),
       youtubeUrl: videoData.youtubeUrl,
       videoId: videoId_new,
-      thumbnail: videoId_new ? getYouTubeThumbnail(videoId_new) : null,
+      // Keep the stored thumbnail unless the YouTube video itself changed
+      thumbnail: videoId_new && videoId_new === oldVideoData?.videoId && oldVideoData?.thumbnail
+        ? oldVideoData.thumbnail
+        : videoId_new ? getYouTubeThumbnail(videoId_new) : null,
       duration: videoData.duration || '',
       category: videoData.category || '',
       tags: videoData.tags || [],
@@ -373,7 +378,17 @@ export const updateVideo = async (videoId, videoData, oldVideoData, adminData) =
 
 export const deleteVideo = async (videoId, videoTitle, adminData) => {
   try {
-    await deleteDoc(doc(db, VIDEOS_COLLECTION, videoId));
+    const videoRef = doc(db, VIDEOS_COLLECTION, videoId);
+    const existing = await getDoc(videoRef);
+    const youtubeId = existing.exists() ? existing.data().videoId : null;
+
+    await deleteDoc(videoRef);
+
+    // Remember it so YouTube auto-sync doesn't re-create it as a draft
+    if (youtubeId) {
+      setDoc(doc(db, 'settings', 'youtube_sync'), { dismissedIds: arrayUnion(youtubeId) }, { merge: true })
+        .catch((err) => console.error('Could not record dismissed YouTube video:', err));
+    }
     
     await logActivity({
       action: ActivityActions.DELETE,
@@ -1133,7 +1148,8 @@ export const importYouTubeVideos = async (videos, options, adminData, onProgress
       group.forEach((v) => {
         const ytDate = v.publishedAt ? Timestamp.fromDate(new Date(v.publishedAt)) : serverTimestamp();
         const description = v.description || '';
-        batch.set(doc(collection(db, VIDEOS_COLLECTION)), {
+        // Stable id per YouTube video: running two imports at once can't duplicate it
+        batch.set(doc(db, VIDEOS_COLLECTION, `yt_${v.videoId}`), {
           title: v.title,
           slug: v.slug,
           youtubeUrl: v.youtubeUrl || `https://www.youtube.com/watch?v=${v.videoId}`,
@@ -1186,5 +1202,23 @@ export const importYouTubeVideos = async (videos, options, adminData, onProgress
   } catch (error) {
     console.error('Error importing YouTube videos:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// ==================== VISUAL STORIES: COUNT ====================
+
+// Number of published shorts/reels (for the Visual Stories page header)
+export const getShortsCount = async () => {
+  try {
+    const q = query(
+      collection(db, VIDEOS_COLLECTION),
+      where('status', '==', 'published'),
+      where('videoType', 'in', ['short', 'reel'])
+    );
+    const snap = await getCountFromServer(q);
+    return snap.data().count;
+  } catch (error) {
+    console.error('Error counting shorts:', error);
+    return null;
   }
 };

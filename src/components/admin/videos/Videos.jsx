@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Search, Download } from "lucide-react";
+import { ArrowLeft, Plus, Search, Download, RefreshCw } from "lucide-react";
+import { syncYouTubeDrafts, countYouTubeDrafts, YOUTUBE_SYNC_EVENT } from "@/lib/services/youtubeSyncService";
 import { toast } from "react-hot-toast";
 import useThemeStore from "@/lib/stores/useThemeStore";
 import useAdminAuthStore from "@/lib/stores/useAdminAuthStore";
@@ -53,6 +54,46 @@ export default function AdminVideosPage() {
   useEffect(() => {
     fetchVideos();
   }, [fetchVideos]);
+
+  // ── YouTube auto-sync ──
+  const [syncing, setSyncing] = useState(false);
+  const [youtubeDrafts, setYoutubeDrafts] = useState(0);
+
+  const refreshDraftCount = useCallback(() => {
+    countYouTubeDrafts().then(setYoutubeDrafts);
+  }, []);
+
+  useEffect(() => {
+    // /admin/videos?status=draft (link from the "new drafts" toast)
+    const status = new URLSearchParams(window.location.search).get("status");
+    if (status === "draft" || status === "published") setStatusFilter(status);
+    refreshDraftCount();
+  }, [refreshDraftCount]);
+
+  useEffect(() => {
+    // Background sync created drafts -> refresh the list
+    const onSync = () => {
+      fetchVideos();
+      refreshDraftCount();
+    };
+    window.addEventListener(YOUTUBE_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(YOUTUBE_SYNC_EVENT, onSync);
+  }, [fetchVideos, refreshDraftCount]);
+
+  const handleCheckYouTube = async () => {
+    setSyncing(true);
+    const result = await syncYouTubeDrafts(admin, { force: true });
+    setSyncing(false);
+    if (!result.success) return toast.error(result.error || "YouTube check failed");
+    if (result.created > 0) {
+      toast.success(`${result.created} new ${result.created === 1 ? "video" : "videos"} added as drafts`);
+      setStatusFilter("draft");
+      setCurrentPage(1);
+    } else {
+      toast("No new YouTube videos");
+    }
+    refreshDraftCount();
+  };
 
   const handleCreateVideo = () => {
     router.push("/admin/videos/manage/new");
@@ -130,6 +171,18 @@ export default function AdminVideosPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
+            onClick={handleCheckYouTube}
+            disabled={syncing}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium border-2 transition-all duration-200 cursor-pointer disabled:opacity-60 ${
+              isDarkMode
+                ? "border-red-500/60 text-red-400 hover:bg-red-950/40"
+                : "border-red-300 text-red-600 hover:bg-red-50"
+            }`}
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Checking..." : "Check YouTube now"}
+          </button>
+          <button
             onClick={() => router.push("/admin/videos/import")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium border-2 transition-all duration-200 cursor-pointer ${
               isDarkMode
@@ -149,6 +202,31 @@ export default function AdminVideosPage() {
           </button>
         </div>
       </div>
+
+      {/* Drafts waiting from YouTube */}
+      {youtubeDrafts > 0 && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 mb-5 px-4 py-3 rounded-lg border ${
+            isDarkMode ? "bg-amber-950/30 border-amber-700/50 text-amber-200" : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}
+        >
+          <span className="text-sm">
+            🎬 <strong>{youtubeDrafts}</strong> {youtubeDrafts === 1 ? "video" : "videos"} from YouTube waiting as drafts.
+            Open each one, choose a category (and SEO if needed), then publish.
+          </span>
+          {statusFilter !== "draft" && (
+            <button
+              onClick={() => {
+                setStatusFilter("draft");
+                setCurrentPage(1);
+              }}
+              className="text-sm font-medium underline cursor-pointer"
+            >
+              Show drafts
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
